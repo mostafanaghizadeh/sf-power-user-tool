@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — SF Power User Tool</title>
+    <style>
+      :root {
+        --purple: #38164a;
+        --ink: #32363a;
+        --muted: #6a6d70;
+        --line: #e0e0e0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 15px/1.6 '72', '72full', Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background: #f7f7f7;
+      }
+      header {
+        background: var(--purple);
+        color: #fff;
+        padding: 20px 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      header p {
+        margin: 4px 0 0;
+        opacity: 0.8;
+        font-size: 13px;
+      }
+      main {
+        max-width: 820px;
+        margin: 24px auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 28px 32px;
+      }
+      h2 {
+        color: var(--purple);
+        font-size: 17px;
+        margin: 26px 0 8px;
+      }
+      h2:first-of-type {
+        margin-top: 0;
+      }
+      p,
+      li {
+        color: var(--ink);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 7px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f0ecf5;
+        color: var(--purple);
+      }
+      code {
+        background: #f0f0f0;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer {
+        max-width: 820px;
+        margin: 0 auto 40px;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 0 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Privacy Policy — SF Power User Tool</h1>
+      <p>Last updated: July 9, 2026</p>
+    </header>
+    <main>
+      <h2>Summary</h2>
+      <p>
+        SF Power User Tool is a productivity extension for SAP SuccessFactors.
+        <strong>It does not collect, transmit, or sell any personal data.</strong>
+        All of your settings and commands stay on your own device.
+      </p>
+
+      <h2>What the extension stores</h2>
+      <p>The extension stores the following <strong>locally on your device</strong> using the browser's extension storage (<code>chrome.storage.local</code>):</p>
+      <ul>
+        <li>Your custom commands, quick links, and command groups.</li>
+        <li>Feature on/off states (keep-alive, dark mode, quick launcher) and the quick-launcher position.</li>
+        <li>Your preferences from the options page.</li>
+      </ul>
+      <p>This data never leaves your browser. It is not sent to us or to any third party. We operate no servers and have no ability to see it.</p>
+
+      <h2>What the extension does NOT do</h2>
+      <ul>
+        <li>It does <strong>not</strong> collect analytics or telemetry.</li>
+        <li>It does <strong>not</strong> read, store, or transmit your SuccessFactors HR data, credentials, or session tokens.</li>
+        <li>It does <strong>not</strong> use remote or hosted code. All code is packaged in the extension.</li>
+        <li>It does <strong>not</strong> track your browsing outside SuccessFactors pages.</li>
+      </ul>
+
+      <h2>Permissions and why they are needed</h2>
+      <table>
+        <tr><th>Permission</th><th>Why</th></tr>
+        <tr><td><code>storage</code></td><td>Save your commands and settings locally.</td></tr>
+        <tr><td><code>alarms</code></td><td>Run the session keep-alive timer in the background so it survives page navigation.</td></tr>
+        <tr><td><code>downloads</code> (optional)</td><td>Only requested if you use CSV/JSON export. You can decline it.</td></tr>
+        <tr><td>Host access (SuccessFactors domains only)</td><td>The content script runs solely on SuccessFactors sites to inject the toolbar and shortcuts.</td></tr>
+      </table>
+      <p>The extension runs <strong>only</strong> on SuccessFactors domains (<code>*.successfactors.com</code>, <code>*.successfactors.eu</code>, <code>*.sapsf.com</code>, <code>*.sapsf.eu</code>, <code>*.sapsf.cn</code>, <code>*.hr.cloud.sap</code>, and <code>*.hr.sapcloud.cn</code>). It has no access to any other site.</p>
+
+      <h2>The keep-alive feature</h2>
+      <p>
+        The keep-alive feature periodically pings your active SuccessFactors tab to prevent idle session timeout. This is a
+        same-origin interaction performed inside your already-authenticated tab. It sends no data anywhere external and stores
+        nothing about your session.
+      </p>
+
+      <h2>Data retention and deletion</h2>
+      <p>Because all data is local, you are in full control. To delete everything, remove the extension or use the "Reset" option on the options page. Uninstalling the extension removes all stored data.</p>
+
+      <h2>Children's privacy</h2>
+      <p>This is a workplace productivity tool and is not directed at children.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If this policy changes, the updated version will ship with a new extension release and the "Last updated" date above will change.</p>
+
+      <h2>Contact</h2>
+      <p>For questions about this policy, open an issue in the project repository.</p>
+    </main>
+    <footer>
+      SAP and SuccessFactors are trademarks of SAP SE. This extension is independent and not affiliated with SAP.
+    </footer>
+  </body>
+</html>

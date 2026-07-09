@@ -1,0 +1,86 @@
+{
+  "manifest_version": 3,
+  "name": "SF Power User Tool",
+  "version": "6.2.2",
+  "description": "Productivity toolkit for SAP SuccessFactors: keyboard shortcuts, quick links, keep-alive, dark mode and group management.",
+  "minimum_chrome_version": "110",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "SF Power User Tool",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.successfactors.com/*",
+        "https://*.successfactors.eu/*",
+        "https://*.sapsf.com/*",
+        "https://*.sapsf.eu/*",
+        "https://*.sapsf.cn/*",
+        "https://*.hr.cloud.sap/*",
+        "https://*.hr.sapcloud.cn/*"
+      ],
+      "js": ["src/content/content-script.js"],
+      "css": ["src/content/content.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "permissions": ["storage", "alarms"],
+  "optional_permissions": ["downloads"],
+  "host_permissions": [
+    "https://*.successfactors.com/*",
+    "https://*.successfactors.eu/*",
+    "https://*.sapsf.com/*",
+    "https://*.sapsf.eu/*",
+    "https://*.sapsf.cn/*",
+    "https://*.hr.cloud.sap/*",
+    "https://*.hr.sapcloud.cn/*"
+  ],
+  "commands": {
+    "toggle-dialog": {
+      "suggested_key": { "default": "Alt+Shift+P" },
+      "description": "Open / close the Power User Tool"
+    },
+    "toggle-dark-mode": {
+      "suggested_key": { "default": "Alt+Shift+D" },
+      "description": "Toggle dark mode"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*", "src/content/page-bridge.js"],
+      "matches": [
+        "https://*.successfactors.com/*",
+        "https://*.successfactors.eu/*",
+        "https://*.sapsf.com/*",
+        "https://*.sapsf.eu/*",
+        "https://*.sapsf.cn/*",
+        "https://*.hr.cloud.sap/*",
+        "https://*.hr.sapcloud.cn/*"
+      ]
+    }
+  ]
+}

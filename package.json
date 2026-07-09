@@ -1,0 +1,49 @@
+{
+  "name": "sf-power-user-tool",
+  "version": "6.2.2",
+  "description": "SAP SuccessFactors Power User Tool — shortcuts, quick links, keep-alive, dark mode and group management as a Manifest V3 browser extension.",
+  "type": "module",
+  "author": "Mostafa Naghizadeh",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "cross-env NODE_ENV=production vite build",
+    "build:firefox": "cross-env TARGET=firefox NODE_ENV=production vite build",
+    "package": "node scripts/package.mjs",
+    "package:firefox": "cross-env TARGET=firefox node scripts/package.mjs",
+    "lint": "eslint \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\"",
+    "lint:fix": "eslint --fix \"src/**/*.{js,ts}\"",
+    "format": "prettier --write \"src/**/*.{js,ts,json,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,json,css,html}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run format:check && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.6.1",
+    "@playwright/test": "^1.49.0",
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  },
+  "browserslist": [
+    "Chrome >= 110",
+    "Edge >= 110",
+    "Firefox >= 115"
+  ]
+}

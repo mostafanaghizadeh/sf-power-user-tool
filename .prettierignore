@@ -1,0 +1,5 @@
+dist
+dist-firefox
+artifacts
+node_modules
+src/content/content.css

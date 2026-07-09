@@ -1,0 +1,1925 @@
+// ==UserScript==
+// @name         SuccessFactors Plugin V5
+// @namespace    sf.shell.plugin
+// @author       Mostafa.Naghizadeh
+// @version      5.0
+// @description  Modular SuccessFactors Plugin — Shortcuts, Quick Links, Keep Alive, Group Management, Feature Tabs
+// @match        https://*.successfactors.*/*
+// @match        https://hcm*.hr.cloud.sap/*
+// @match        https://performancemanager*.successfactors.eu/*
+// @grant        none
+// ==/UserScript==
+(function () {
+
+    // ─────────────────────────────────────────────
+    // SCOPED CSS  — all selectors prefixed with #sf-root
+    // ─────────────────────────────────────────────
+    const STYLE = `
+    /* ── Reset inside our root ── */
+    #sf-root *, #sf-overlay { box-sizing: border-box; }
+
+    /* ── Overlay backdrop ── */
+    #sf-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 999997;
+    }
+
+    /* ── Dialog shell ── */
+    #sf-root .sf-dialog {
+        display: none;
+        position: fixed;
+        top: 5vh; left: 50%;
+        transform: translateX(-50%);
+        width: 960px; max-width: 98vw;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 8px 40px rgba(0,0,0,.32);
+        font-family: 72, "72full", Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        color: #32363a;
+        z-index: 999998;
+        overflow: hidden;
+        flex-direction: column;
+    }
+    #sf-root .sf-dialog.sf-open { display: flex; }
+
+    /* ── Dialog header ── */
+    #sf-root .sf-dlg-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px;
+        background: #38164a;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-dlg-title {
+        display: flex; align-items: center; gap: 10px;
+        color: #fff; font-size: 15px; font-weight: 600;
+    }
+    #sf-root .sf-btn-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px;
+        border: none; border-radius: 4px; cursor: pointer;
+        background: transparent; color: #fff; font-size: 16px;
+        transition: background .15s;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-btn-icon:hover { background: rgba(150,150,150,.58); }
+
+    /* ── Tabs ── */
+    #sf-root .sf-dlg-tabs {
+        display: flex; border-bottom: 1px solid #e0e0e0;
+        background: #fafafa; flex-shrink: 0;
+    }
+    #sf-root .sf-tab {
+        flex: 1; padding: 10px 16px; border: none; background: transparent;
+        cursor: pointer; font-size: 13px; font-weight: 400; color: #6a6d70;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        border-bottom: 2px solid transparent; font-family: inherit;
+        transition: all .15s;
+    }
+    #sf-root .sf-tab:hover { background: #fff; color: #32363a; }
+    #sf-root .sf-tab.sf-tab-active {
+        color: #38164a; border-bottom: 2px solid #38164a;
+        background: #fff; font-weight: 600;
+    }
+    #sf-root .sf-feat-badge {
+        background: #f0ecf5; color: #38164a; font-size: 10px;
+        padding: 1px 6px; border-radius: 10px; min-width: 14px;
+        display: none;
+    }
+    #sf-root .sf-feat-badge.sf-visible { display: inline-block; }
+
+    /* ── Dialog body ── */
+    #sf-root .sf-dlg-body {
+        padding: 14px 16px;
+        display: flex; flex-direction: column; gap: 10px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* ── Search row ── */
+    #sf-root .sf-search-wrap {
+        display: flex; align-items: center; gap: 6px;
+    }
+    #sf-root .sf-search-wrap .sf-input { flex: 1; }
+    #sf-root .sf-btn-ghost {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 34px; padding: 0 10px;
+        border: 1px solid #c0c0c0; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-size: 13px;
+        font-family: inherit;
+        transition: background .15s, border-color .15s;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-btn-ghost:hover { background: #f5f5f5; border-color: #999; }
+
+    /* ── Form area ── */
+    #sf-root .sf-form-area {
+        display: flex; gap: 8px; align-items: flex-start;
+        background: #f7f7f7;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 10px;
+    }
+    #sf-root .sf-field { display: flex; flex-direction: column; gap: 2px; }
+    #sf-root .sf-field-key      { flex: 0 0 100px; }
+    #sf-root .sf-field-label    { flex: 2; }
+    #sf-root .sf-field-shortcut { flex: 2; }
+    #sf-root .sf-field-path     { flex: 3; }
+    #sf-root .sf-field-group    { flex: 0 0 140px; }
+
+    #sf-root .sf-input {
+        height: 34px; padding: 0 8px;
+        border: 1px solid #bababa;
+        border-radius: 4px;
+        font-family: inherit; font-size: 13px; color: #32363a;
+        background: #fff;
+        width: 100%;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    #sf-root .sf-input:focus {
+        border-color: #0064d9;
+        box-shadow: 0 0 0 2px rgba(0,100,217,.15);
+    }
+    #sf-root .sf-input.sf-error {
+        border-color: #bb0000;
+        box-shadow: 0 0 0 2px rgba(187,0,0,.12);
+    }
+    #sf-root .sf-err-msg {
+        color: #bb0000; font-size: 11px; min-height: 14px; display: block;
+    }
+
+    /* ── Record shortcut row ── */
+    #sf-root .sf-shortcut-row { display: flex; align-items: center; gap: 4px; }
+    #sf-root .sf-record-btn {
+        width: 26px; height: 26px; flex-shrink: 0;
+        transition: background .15s, border-color .15s;
+        font-family: inherit;
+        border: none; border-radius: 50%;
+        background: #666; color: #fff; cursor: pointer; font-size: 18px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #sf-root .sf-record-btn:hover { background: #999; }
+    #sf-root .sf-record-btn.sf-recording { background: #bb0000; color: #fff; border-color: #bb0000; }
+
+    /* ── Form action buttons ── */
+    #sf-root .sf-form-actions {
+        display: flex; gap: 4px; padding-top: 2px; flex-shrink: 0; align-self: flex-start;
+    }
+    #sf-root .sf-btn-primary {
+        height: 34px; padding: 0 14px;
+        border: none; border-radius: 4px; cursor: pointer;
+        background: #0064d9; color: #fff; font-size: 13px; font-weight: 600;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        transition: background .15s;
+    }
+    #sf-root .sf-btn-primary:hover { background: #0058c0; }
+    #sf-root .sf-btn-default {
+        height: 34px; padding: 0 12px;
+        border: 1px solid #bababa; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-size: 13px;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        transition: background .15s, border-color .15s;
+    }
+    #sf-root .sf-btn-default:hover { background: #f5f5f5; border-color: #888; }
+
+    /* ── Sort bar ── */
+    #sf-root .sf-sort-bar {
+        display: flex; align-items: center; gap: 4px;
+        font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-sort-btn {
+        height: 26px; padding: 0 8px;
+        border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+        background: transparent; color: #0064d9; font-size: 11px;
+        font-family: inherit;
+        transition: background .15s;
+    }
+    #sf-root .sf-sort-btn:hover { background: #eef4ff; border-color: #c5d9f7; }
+    #sf-root .sf-sort-ind { font-size: 11px; opacity: .5; margin-left: 4px; }
+
+    /* ── Column header ── */
+    #sf-root .sf-col-header {
+        display: flex; gap: 8px; padding: 4px 10px;
+        font-size: 11px; font-weight: 600; color: #6a6d70;
+        border-bottom: 2px solid #e0e0e0;
+        user-select: none;
+    }
+
+    /* ── List container ── */
+    #sf-root .sf-list {
+        max-height: 360px; overflow-y: auto;
+        border: 1px solid #e0e0e0; border-radius: 6px;
+        background: #fff;
+    }
+
+    /* ── Group accordion header ── */
+    #sf-root .sf-group-header {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 10px;
+        background: #f0ecf5;
+        border-bottom: 1px solid #e0e0e0;
+        cursor: pointer;
+        user-select: none;
+        position: sticky; top: 0; z-index: 2;
+    }
+    #sf-root .sf-group-header:hover { background: #e8e0f0; }
+    #sf-root .sf-group-header.sf-drag-over { outline: 2px dashed #38164a; background: #e0d4f0; }
+    #sf-root .sf-group-arrow {
+        display: inline-block; transition: transform .15s;
+        font-size: 12px; color: #38164a; flex-shrink: 0;
+        width: 14px;
+    }
+    #sf-root .sf-group-arrow.sf-collapsed { transform: rotate(-90deg); }
+    #sf-root .sf-group-name-wrap {
+        display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+    }
+    #sf-root .sf-group-name {
+        font-size: 12px; font-weight: 600; color: #38164a;
+    }
+    #sf-root .sf-group-count {
+        font-size: 10px; color: #888; font-weight: 400;
+    }
+    #sf-root .sf-group-name-input {
+        height: 24px; padding: 0 6px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 3px;
+        font-family: inherit; outline: none; width: 140px;
+        display: none;
+    }
+    #sf-root .sf-group-name-input:focus { border-color: #0064d9; }
+    #sf-root .sf-group-actions {
+        display: flex; gap: 4px; flex-shrink: 0; margin-left: auto;
+    }
+    #sf-root .sf-group-btn {
+        height: 22px; padding: 0 6px; font-size: 11px;
+        border: 1px solid #c0c0c0; border-radius: 3px; cursor: pointer;
+        background: #fff; color: #32363a; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-group-btn:hover { background: #f0f0f0; }
+    #sf-root .sf-group-btn.sf-group-btn-del { border-color: #bb0000; color: #bb0000; }
+    #sf-root .sf-group-btn.sf-group-btn-del:hover { background: #fff0f0; }
+    #sf-root .sf-group-drag-handle {
+        cursor: grab; color: #bbb; font-size: 14px; flex-shrink: 0;
+        padding: 0 2px;
+    }
+    #sf-root .sf-group-drag-handle:active { cursor: grabbing; }
+
+    /* ── Command row ── */
+    #sf-root .sf-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 10px 7px 26px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 13px;
+        transition: background .1s;
+    }
+    #sf-root .sf-row:last-child { border-bottom: none; }
+    #sf-root .sf-row:hover { background: #f5f0f9; }
+    #sf-root .sf-row.sf-drag-over { outline: 2px dashed #0064d9; }
+    #sf-root .sf-row.sf-dragging  { opacity: .4; }
+
+    #sf-root .sf-row-cb { flex: 0 0 18px; }
+    #sf-root .sf-row-cb input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; }
+    #sf-root .sf-row-drag {
+        flex: 0 0 12px; cursor: grab; color: #ccc; font-size: 14px;
+        line-height: 1; flex-shrink: 0;
+    }
+    #sf-root .sf-row-drag:active { cursor: grabbing; }
+
+    #sf-root .sf-row-key {
+        flex: 0 0 100px; min-width: 0; overflow-wrap: anywhere;
+        font-weight: 600; color: #32363a;
+    }
+    #sf-root .sf-row-label  { flex: 2; min-width: 0; overflow-wrap: anywhere; color: #32363a; }
+    #sf-root .sf-row-shortcut {
+        flex: 0 0 110px; min-width: 0; overflow-wrap: anywhere;
+        color: #6a6d70; font-size: 12px;
+    }
+    #sf-root .sf-row-path {
+        flex: 3; min-width: 0; overflow-wrap: anywhere;
+        color: #6a6d70; font-size: 12px; opacity: .85;
+    }
+    #sf-root .sf-row-actions {
+        flex: 0 0 80px; display: flex; gap: 4px;
+        justify-content: flex-end; flex-shrink: 0;
+    }
+    #sf-root .sf-badge {
+        display: inline-block;
+        margin-left: 6px; font-size: 10px; color: #5a6e87;
+        background: #e8f2ff; padding: 1px 6px; border-radius: 10px;
+        font-weight: 400; vertical-align: middle;
+    }
+    #sf-root .sf-kbd {
+        display: inline-block;
+        background: #f7f7f7; padding: 1px 6px; border-radius: 4px;
+        border: 1px solid #e0e0e0; font-size: 11px; color: #555;
+        font-family: monospace;
+    }
+    #sf-root .sf-btn-edit {
+        height: 26px; padding: 0 7px;
+        border: 1px solid #0064d9; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #0064d9; font-size: 13px; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-edit:hover { background: #eef4ff; }
+    #sf-root .sf-btn-del {
+        height: 26px; padding: 0 7px;
+        border: 1px solid #bb0000; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #bb0000; font-size: 13px; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-del:hover { background: #fff0f0; }
+    #sf-root .sf-lock { opacity: .4; font-size: 15px; }
+
+    /* ── Toggle switch ── */
+    #sf-root .sf-toggle {
+        position: relative; display: inline-flex; align-items: center;
+        width: 44px; height: 24px; border-radius: 12px; border: none;
+        cursor: pointer; padding: 0; transition: background .2s; flex-shrink: 0;
+    }
+    #sf-root .sf-toggle .sf-toggle-knob {
+        position: absolute;
+        width: 20px; height: 20px; border-radius: 50%; background: #fff;
+        transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    #sf-root .sf-toggle.sf-on  { background: #1a7f4b; }
+    #sf-root .sf-toggle.sf-off { background: #888; }
+    #sf-root .sf-toggle.sf-on  .sf-toggle-knob { left: 22px; }
+    #sf-root .sf-toggle.sf-off .sf-toggle-knob { left: 2px; }
+
+    /* ── Group management panel ── */
+    #sf-root .sf-group-mgmt {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding: 6px 0; border-bottom: 1px solid #e8e0f0;
+        font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-group-mgmt-label { font-weight: 600; color: #38164a; }
+    #sf-root .sf-new-group-input {
+        height: 28px; padding: 0 8px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px;
+        font-family: inherit; outline: none; width: 130px;
+    }
+    #sf-root .sf-new-group-input:focus { border-color: #0064d9; }
+    #sf-root .sf-btn-xs {
+        height: 28px; padding: 0 10px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-family: inherit;
+        display: inline-flex; align-items: center; gap: 4px;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-xs:hover { background: #f0f0f0; }
+    #sf-root .sf-btn-xs.sf-btn-xs-primary { background: #0064d9; color: #fff; border-color: #0064d9; }
+    #sf-root .sf-btn-xs.sf-btn-xs-primary:hover { background: #0058c0; }
+
+    /* bulk-move bar */
+    #sf-root .sf-bulk-bar {
+        display: none; align-items: center; gap: 8px;
+        padding: 6px 10px; background: #eef4ff;
+        border: 1px solid #c5d9f7; border-radius: 4px;
+        font-size: 12px; color: #32363a;
+    }
+    #sf-root .sf-bulk-bar.sf-visible { display: flex; }
+    #sf-root .sf-bulk-select {
+        height: 28px; padding: 0 6px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px;
+        font-family: inherit; outline: none;
+    }
+
+    /* ── Feature cards ── */
+    #sf-root .sf-feat-notice {
+        display: flex; align-items: center; gap: 8px;
+        background: #f7f7f7; border: 1px solid #e8e8e8; border-radius: 6px;
+        padding: 9px 12px; font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-feat-grid { display: flex; flex-direction: column; gap: 10px; }
+    #sf-root .sf-feat-card {
+        background: #fafafa; border: 1px solid #e8e0f0; border-radius: 8px;
+        padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+        transition: border-color .15s;
+    }
+    #sf-root .sf-feat-card:hover { border-color: #c8b8dc; }
+    #sf-root .sf-feat-card.sf-feat-on { border-color: #b8dcb8; background: #f7fbf7; }
+    #sf-root .sf-feat-icon {
+        width: 40px; height: 40px; border-radius: 8px; background: #f0ecf5;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; flex-shrink: 0;
+    }
+    #sf-root .sf-feat-body { flex: 1; min-width: 0; }
+    #sf-root .sf-feat-name { font-size: 14px; font-weight: 600; color: #32363a; }
+    #sf-root .sf-feat-sc { font-size: 11px; font-weight: 400; color: #888; margin-left: 8px; }
+    #sf-root .sf-feat-desc { font-size: 12px; color: #6a6d70; margin-top: 3px; }
+    #sf-root .sf-feat-status {
+        display: flex; align-items: center; gap: 5px;
+        margin-top: 5px; font-size: 11px; color: #888;
+    }
+    #sf-root .sf-feat-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; flex-shrink: 0; }
+    #sf-root .sf-feat-dot.sf-on { background: #1a7f4b; }
+
+    /* ── Dialog footer ── */
+    #sf-root .sf-dlg-footer {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px;
+        border-top: 1px solid #e0e0e0;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-import-label {
+        display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+        padding: 0 12px; height: 34px;
+        border: 1px solid #bababa; border-radius: 4px;
+        color: #32363a; font-size: 13px; font-family: inherit;
+        background: #fff; transition: background .15s;
+    }
+    #sf-root .sf-import-label:hover { background: #f5f5f5; }
+    #sf-root .sf-import-label span { font-size: 11px; color: #6a6d70; }
+    #sf-root .sf-btn-danger {
+        height: 34px; padding: 0 14px;
+        border: 1px solid #bb0000; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #bb0000; font-size: 13px; font-weight: 600;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        margin-left: auto;
+        transition: background .15s;
+    }
+    #sf-root .sf-btn-danger:hover { background: #fff0f0; }
+
+    /* ── Toast ── */
+    .sf-toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #354a5e; color: #fff;
+        padding: 11px 22px; border-radius: 8px;
+        font-family: 72, Arial, sans-serif; font-size: 14px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.3);
+        z-index: 10000000; white-space: nowrap;
+        transition: opacity .4s; opacity: 1;
+        display: flex; align-items: center; gap: 10px;
+        pointer-events: none;
+    }
+
+    /* ── Quick Launcher ── */
+    #sfQuickLauncher-root { font-family: 72, Arial, sans-serif; }
+    #sfQuickLauncher-toggle {
+        display: flex; align-items: center; gap: 6px;
+        padding: 7px 14px;
+        background: #38164a; color: #fff;
+        border: none; border-radius: 6px; cursor: pointer;
+        font-family: 72, Arial, sans-serif; font-size: 13px; font-weight: 500;
+        box-shadow: 0 2px 6px rgba(0,0,0,.25);
+        transition: background .15s;
+    }
+    #sfQuickLauncher-toggle:hover { background: #4e2268; }
+    #sfQuickLauncher-menu {
+        position: absolute; top: 40px; left: 0; min-width: 264px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.18);
+        display: none; max-height: 420px; overflow-y: auto;
+    }
+    .sf-ql-group-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 12px;
+        background: #f0ecf5;
+        cursor: pointer; border-bottom: 1px solid #e0e0e0;
+        font-size: 12px; font-weight: 600; color: #38164a;
+        user-select: none; position: sticky; top: 0; z-index: 1;
+    }
+    .sf-ql-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 6px 12px 6px 26px; cursor: pointer; font-size: 13px;
+        border-bottom: 1px solid #f5f5f5; color: #32363a;
+        transition: background .1s;
+    }
+    .sf-ql-item:hover { background: #f5f0f9; }
+    .sf-ql-manage {
+        position: sticky; bottom: 0; padding: 8px 12px; cursor: pointer;
+        border-top: 2px solid #e0e0e0; font-weight: 600;
+        background: #fafafa; font-size: 13px; z-index: 1;
+        color: #0064d9; display: flex; align-items: center; gap: 6px;
+        transition: background .12s;
+    }
+    .sf-ql-manage:hover { background: #eee; }
+    `;
+
+    // ─────────────────────────────────────────────
+    // CONFIG
+    // ─────────────────────────────────────────────
+    const CONFIG = { STATE_KEY: "sf_plugin_state_v1", FEATURE_KEY: "sf_feature_states_v1", DEBUG: false };
+    function log(...args) { if (CONFIG.DEBUG) console.log("[SF]", ...args); }
+
+    // ─────────────────────────────────────────────
+    // STATE SERVICE
+    // ─────────────────────────────────────────────
+    const StateService = (() => {
+        let state = {};
+        const defaults = {
+            proxy:      { group: "System", label: "Proxy Now",         path: "Proxy Dialog",              function: "openProxy",       shortcut: "ALT+P", system: true },
+            becomeSelf: { group: "System", label: "Become Self",        path: "Back to Self from Proxy",   function: "becomeSelf",      shortcut: "ALT+S", system: true },
+            search:     { group: "System", label: "Jump on Search",     path: "Focus Search",              function: "focusSearch",     shortcut: "ALT+K", system: true },
+            menu:       { group: "System", label: "Open Menu",          path: "Shell Menu",                function: "openShellMenu",   shortcut: "ALT+M", system: true },
+            home:       { group: "System", label: "Go Home",            path: "/sf/home",                  function: "",                shortcut: "ALT+H", system: true },
+            cod:        { group: "Admin",  label: "MDF Object",         path: "/xi/ui/genericobject/pages/mdf/mdf.xhtml", function: "", shortcut: "ALT+D", system: false },
+            admin:      { group: "Admin",  label: "Admin Center",       path: "/sf/admin",                 function: "",                shortcut: "ALT+I", system: true },
+            keepalive:  { group: "System", label: "Toggle Keep Alive",  path: "Keep Alive Toggle",         function: "toggleKeepAlive", shortcut: "ALT+A", system: true, toggleable: true },
+            darkmode:   { group: "System", label: "Toggle Dark Mode",   path: "Dark Mode",                 function: "toggleDarkMode",  shortcut: "ALT+D", system: true, toggleable: true }
+        };
+
+        function _toId(name) { return name.trim().toLowerCase().replace(/\s+/g, "_"); }
+
+        function _bootstrapGroups() {
+            if (!state.groups) state.groups = {};
+            const seen = new Set();
+            Object.values(state.commands).forEach(cmd => {
+                const name = (cmd.group || "General").trim();
+                seen.add(name);
+            });
+            let maxOrder = Math.max(0, ...Object.values(state.groups).map(g => g.order));
+            seen.forEach(name => {
+                const id = _toId(name);
+                if (!state.groups[id]) {
+                    state.groups[id] = { id, name, order: ++maxOrder };
+                }
+            });
+        }
+
+        function load() {
+            state = JSON.parse(localStorage.getItem(CONFIG.STATE_KEY) || "{}");
+            if (!state.commands) {
+                state.commands = { ...defaults };
+            } else {
+                Object.entries(defaults).forEach(([k, v]) => { if (!state.commands[k]) state.commands[k] = v; });
+            }
+            Object.values(state.commands).forEach(cmd => {
+                if (cmd.system === undefined) cmd.system = false;
+                if (!cmd.shortcut) cmd.shortcut = "";
+                if (!cmd.group)   cmd.group = "General";
+            });
+            _bootstrapGroups();
+        }
+
+        function save() { localStorage.setItem(CONFIG.STATE_KEY, JSON.stringify(state)); }
+
+        function getCommands()        { return state.commands; }
+        function getDefaultCommands() { return defaults; }
+        function getGroups()          { return state.groups; }
+
+        function getGroupsSorted() {
+            return Object.values(state.groups).sort((a, b) => a.order - b.order);
+        }
+
+        function addCommand(key, data) {
+            if (defaults[key]) return;
+            const gName = (data.group || "General").trim();
+            const gId   = _toId(gName);
+            if (!state.groups[gId]) {
+                const maxOrder = Math.max(0, ...Object.values(state.groups).map(g => g.order));
+                state.groups[gId] = { id: gId, name: gName, order: maxOrder + 1 };
+            }
+            state.commands[key] = data;
+            save();
+        }
+
+        function removeCommand(key) { delete state.commands[key]; save(); }
+
+        function addGroup(name) {
+            const id = _toId(name);
+            if (state.groups[id]) return null;
+            const maxOrder = Math.max(0, ...Object.values(state.groups).map(g => g.order));
+            state.groups[id] = { id, name: name.trim(), order: maxOrder + 1 };
+            save();
+            return state.groups[id];
+        }
+
+        function renameGroup(id, newName) {
+            if (!state.groups[id]) return false;
+            const newId = _toId(newName);
+            if (newId !== id && state.groups[newId]) return false;
+            const old = state.groups[id];
+            delete state.groups[id];
+            state.groups[newId] = { id: newId, name: newName.trim(), order: old.order };
+            Object.values(state.commands).forEach(cmd => {
+                if (_toId(cmd.group || "") === id) cmd.group = newName.trim();
+            });
+            save();
+            return newId;
+        }
+
+        function deleteGroup(id) {
+            const group = state.groups[id];
+            if (!group) return false;
+            const inUse = Object.values(state.commands).some(cmd => _toId(cmd.group || "") === id);
+            if (inUse) return false;
+            delete state.groups[id];
+            save();
+            return true;
+        }
+
+        function reorderGroups(newOrder) {
+            newOrder.forEach((id, i) => {
+                if (state.groups[id]) state.groups[id].order = i + 1;
+            });
+            save();
+        }
+
+        function moveCommandToGroup(cmdKey, groupName) {
+            if (!state.commands[cmdKey]) return;
+            state.commands[cmdKey].group = groupName;
+            const id = _toId(groupName);
+            if (!state.groups[id]) {
+                const maxOrder = Math.max(0, ...Object.values(state.groups).map(g => g.order));
+                state.groups[id] = { id, name: groupName, order: maxOrder + 1 };
+            }
+            save();
+        }
+
+        function reset() { localStorage.removeItem(CONFIG.STATE_KEY); load(); }
+
+        return {
+            load, save,
+            getCommands, getDefaultCommands,
+            getGroups, getGroupsSorted,
+            addCommand, removeCommand,
+            addGroup, renameGroup, deleteGroup, reorderGroups, moveCommandToGroup,
+            reset
+        };
+    })();
+
+    // ─────────────────────────────────────────────
+    // FEATURE STATE SERVICE  — persists feature on/off states
+    // ─────────────────────────────────────────────
+    const FeatureStateService = (() => {
+        const FEATURES = [
+            {
+                key:      "keepalive",
+                label:    "Keep Alive",
+                desc:     "Prevents session timeout by pinging every 60 seconds in the background.",
+                icon:     "🔁",
+                shortcut: "ALT+A",
+                fn:       "toggleKeepAlive"
+            },
+            {
+                key:      "darkmode",
+                label:    "Dark Mode",
+                desc:     "Inverts and hue-rotates the entire page for a dark appearance.",
+                icon:     "🌙",
+                shortcut: "ALT+D",
+                fn:       "toggleDarkMode"
+            },
+            {
+                key:      "quicklauncher",
+                label:    "Quick Launcher",
+                desc:     "Floating quick-links button pinned to the top-left of every page.",
+                icon:     "⚡",
+                shortcut: null,
+                fn:       null
+            }
+        ];
+
+        function _load() {
+            try { return JSON.parse(localStorage.getItem(CONFIG.FEATURE_KEY) || "{}"); } catch { return {}; }
+        }
+        function _save(states) {
+            try { localStorage.setItem(CONFIG.FEATURE_KEY, JSON.stringify(states)); } catch {}
+        }
+        function getAll()           { return FEATURES; }
+        function getStates()        { return _load(); }
+        function setState(key, val) { const s = _load(); s[key] = val; _save(s); }
+        function isOn(key)          { return !!_load()[key]; }
+
+        return { getAll, getStates, setState, isOn };
+    })();
+
+    // ─────────────────────────────────────────────
+    // VALIDATION SERVICE
+    // ─────────────────────────────────────────────
+    const ValidationService = (() => {
+        function normalize(s) { return (s || "").toLowerCase().replace(/\s+/g, ""); }
+        function isDuplicateKey(key, ignoreKey) {
+            return Object.keys(StateService.getCommands()).some(k => k === key && k !== ignoreKey);
+        }
+        function isDuplicateShortcut(shortcut, ignoreKey) {
+            if (!shortcut) return false;
+            const n = normalize(shortcut);
+            return Object.entries(StateService.getCommands()).some(([k, v]) => {
+                if (ignoreKey && k === ignoreKey) return false;
+                return normalize(v.shortcut) === n;
+            });
+        }
+        function isValidShortcut(shortcut) {
+            if (!shortcut) return true;
+            return /^(CTRL|ALT|SHIFT)(\+(CTRL|ALT|SHIFT))*\+[A-Z0-9]$/i.test(shortcut.trim());
+        }
+        function validateForm(key, shortcut, path, editKey) {
+            const errors = [];
+            if (!key.trim())  errors.push({ field: "key",  message: "Key is required" });
+            if (!path.trim()) errors.push({ field: "path", message: "Path is required" });
+            if (key.trim() && key !== editKey && isDuplicateKey(key.trim(), editKey))
+                errors.push({ field: "key", message: "Key already exists" });
+            if (shortcut && !isValidShortcut(shortcut))
+                errors.push({ field: "shortcut", message: "Format: ALT+X or CTRL+SHIFT+X" });
+            if (shortcut && isDuplicateShortcut(shortcut, editKey))
+                errors.push({ field: "shortcut", message: "Shortcut already in use" });
+            return errors;
+        }
+        return { validateForm, isDuplicateKey, isDuplicateShortcut, isValidShortcut };
+    })();
+
+    // ─────────────────────────────────────────────
+    // DOM HELPERS
+    // ─────────────────────────────────────────────
+    const DOMHelper = (() => {
+        function findDeep(selector, root = document) {
+            let results = [];
+            (function traverse(node) {
+                if (!node) return;
+                if (node.querySelectorAll) results.push(...node.querySelectorAll(selector));
+                if (node.shadowRoot) traverse(node.shadowRoot);
+                node.childNodes.forEach(traverse);
+            })(root);
+            return results;
+        }
+        function triggerClick(el) {
+            if (!el) return;
+            el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+        }
+        function getActiveSearchField() {
+            return findDeep('xweb-shellbar-search-input')
+                .filter(el => el.id === "search")
+                .find(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+        }
+        function getInput(el) { return el?.shadowRoot?.querySelector("input"); }
+        function getMenuButton() {
+            return findDeep('button[data-ui5-stable="menu"]').find(el => el.offsetParent !== null);
+        }
+        function navUrl(path) { return window.location.origin + path.replace("{{SEC}}",window.ajaxSecKey); }
+        return { findDeep, triggerClick, getActiveSearchField, getInput, getMenuButton, navUrl };
+    })();
+
+    // ─────────────────────────────────────────────
+    // KEEP ALIVE SERVICE
+    // ─────────────────────────────────────────────
+    const KeepAliveService = (() => {
+        let active = false;
+        let interval = null;
+        function isActive() { return active; }
+        function toggle() {
+            active = !active;
+            if (active) {
+                interval = setInterval(() => {
+                    try { if (window.SFSessionTimeout?.reset) window.SFSessionTimeout.reset(); } catch (e) {}
+                }, 60000);
+            } else { clearInterval(interval); interval = null; }
+            _notify(active);
+            _updateBadge(active);
+            return active;
+        }
+        function _notify(on) {
+            const existing = document.getElementById("sf-keepalive-toast");
+            if (existing) existing.remove();
+            const toast = document.createElement("div");
+            toast.id = "sf-keepalive-toast";
+            toast.className = "sf-toast";
+            toast.style.background = on ? "#1a7f4b" : "#7f1a1a";
+            toast.innerHTML = `<span style="font-size:18px;">${on ? "🟢" : "🔴"}</span>
+                <div><strong>Keep Alive ${on ? "Activated" : "Deactivated"}</strong><br>
+                <span style="font-size:12px;opacity:.85;">${on ? "Session will be kept alive automatically." : "Session timeout is now normal."}</span></div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 400); }, 4000);
+        }
+        function _updateBadge(on) {
+            const badge = document.getElementById("sf-keepalive-badge");
+            if (badge) badge.style.display = on ? "inline-block" : "none";
+        }
+        return { isActive, toggle };
+    })();
+
+    // ─────────────────────────────────────────────
+    // COMMAND SERVICE
+    // ─────────────────────────────────────────────
+    const CommandService = (() => {
+        function _getHandlers() {
+            return {
+                openProxy:       () => { const item = DOMHelper.findDeep('[data-ui5-stable="profile-item-PROXY_NOW"]')[0]?.shadowRoot?.querySelector("li"); DOMHelper.triggerClick(item); },
+                becomeSelf:      () => { const item = DOMHelper.findDeep('[data-ui5-stable="profile-item-PROXY_BECOME_SELF"]')[0]?.shadowRoot?.querySelector("li"); UIModule.showToast("Proxy Deactivated: Wait to become Self"); DOMHelper.triggerClick(item); },
+                focusSearch:     () => { const el = DOMHelper.getActiveSearchField(); const input = DOMHelper.getInput(el); if (input) input.focus(); },
+                openShellMenu:   () => { DOMHelper.triggerClick(DOMHelper.getMenuButton()); },
+                toggleKeepAlive: () => { const on = KeepAliveService.toggle(); UIModule.updateToggleState("keepalive", on); },
+                toggleDarkMode:  toggleDarkMode
+            };
+        }
+        function run(cmd) {
+            const h = _getHandlers();
+            if (cmd.function && h[cmd.function]) { h[cmd.function](); return; }
+            if (cmd.path && cmd.path.startsWith("/")) window.location.href = DOMHelper.navUrl(cmd.path);
+        }
+        function _normalizeShortcut(s) { return (s || "").toLowerCase().replace(/\s+/g, ""); }
+        function _eventToShortcut(e) {
+            const parts = [];
+            if (e.ctrlKey)  parts.push("ctrl");
+            if (e.altKey)   parts.push("alt");
+            if (e.shiftKey) parts.push("shift");
+            parts.push(e.key.toLowerCase());
+            return parts.join("+");
+        }
+        function findMatchingCommand(e) {
+            const pressed = _eventToShortcut(e);
+            return Object.values(StateService.getCommands()).find(cmd => {
+                if (!cmd.shortcut) return false;
+                return _normalizeShortcut(cmd.shortcut) === pressed;
+            });
+        }
+        function executeFromSearchBar(input) {
+            if (!input) return false;
+            const normalized = input.trim().replace(/\s+/g, " ");
+            let action = "/n", key;
+            const parts = normalized.split(" ");
+            if (parts.length === 2)              { action = parts[0]; key = parts[1]; }
+            else if (normalized.startsWith("/o")) { action = "/o"; key = normalized.slice(2); }
+            else if (normalized.startsWith("/n")) { action = "/n"; key = normalized.slice(2); }
+            else                                  { key = normalized.replace("/", ""); }
+            const entry = StateService.getCommands()[key];
+            if (!entry || !entry.path || !entry.path.startsWith("/")) return false;
+            const finalUrl = DOMHelper.navUrl(entry.path);
+            if (action === "/o") window.open(finalUrl, "_blank", "noopener,noreferrer");
+            else window.location.href = finalUrl;
+            return true;
+        }
+        function toggleDarkMode() {
+            const id = "sf-plugin-shell-darkMode";
+            const el = document.getElementById(id);
+            if (el) { el.remove(); return false; }
+            const style = document.createElement("style");
+            style.id = id;
+            style.textContent = `
+                html { filter: invert(1) hue-rotate(180deg) !important; background: #111 !important; }
+                img, video, picture, canvas, svg { filter: invert(1) hue-rotate(180deg) !important; }
+                [style*="background-image"] { filter: invert(1) hue-rotate(180deg) !important; }`;
+            document.documentElement.appendChild(style);
+            return true;
+        }
+        return { run, findMatchingCommand, executeFromSearchBar, toggleDarkMode };
+    })();
+
+    // ─────────────────────────────────────────────
+    // UI MODULE
+    // ─────────────────────────────────────────────
+    const UIModule = (() => {
+
+        let root      = null;
+        let ui        = {};
+        let editKey   = null;
+        let sortField = "key";
+        let sortDir   = 1;
+        let toggleStates    = {};
+        let collapsedGroups = {};
+        let selectedRows    = new Set();
+        let dragState       = {};
+
+        function _injectStyle() {
+            if (document.getElementById("sf-plugin-style")) return;
+            const s = document.createElement("style");
+            s.id = "sf-plugin-style";
+            s.textContent = STYLE;
+            document.head.appendChild(s);
+        }
+
+        // ─────────────────────────────────────────
+        // BUILD DOM
+        // ─────────────────────────────────────────
+        function init() {
+            _injectStyle();
+            root = document.createElement("div");
+            root.id = "sf-root";
+
+            root.innerHTML = `
+            <div id="sf-overlay"></div>
+            <div class="sf-dialog" id="sf-dialog">
+
+                <div class="sf-dlg-header">
+                    <div class="sf-dlg-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                            <path d="M6 2C4.9 2 4 2.9 4 4V22L12 18L20 22V4C20 2.9 19.1 2 18 2H6Z"/>
+                        </svg>
+                        SF Power User Tool
+                    </div>
+                    <button class="sf-btn-icon" data-action="close" title="Close (Esc)">✕</button>
+                </div>
+
+                <!-- ── TABS ── -->
+                <div class="sf-dlg-tabs">
+                    <button class="sf-tab sf-tab-active" data-tab="commands">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+                        Commands
+                    </button>
+                    <button class="sf-tab" data-tab="features">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.47.47 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.47.47 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        Features
+                        <span class="sf-feat-badge" id="sf-feat-on-count"></span>
+                    </button>
+                </div>
+
+                <!-- ── COMMANDS PANE ── -->
+                <div class="sf-dlg-body" id="sf-pane-commands">
+
+                    <!-- Search -->
+                    <div class="sf-search-wrap">
+                        <input class="sf-input" data-role="search" placeholder="🔍  Search commands…" />
+                        <button class="sf-btn-ghost" data-action="resetSearch" title="Clear search">⟲</button>
+                    </div>
+
+                    <!-- Add / Edit form -->
+                    <div class="sf-form-area">
+                        <div class="sf-field sf-field-key">
+                            <input class="sf-input" data-role="key" placeholder="key" />
+                            <span class="sf-err-msg" data-err="key"></span>
+                        </div>
+                        <div class="sf-field sf-field-label">
+                            <input class="sf-input" data-role="label" placeholder="label" />
+                            <span class="sf-err-msg" data-err="label"></span>
+                        </div>
+                        <div class="sf-field sf-field-shortcut">
+                            <div class="sf-shortcut-row">
+                                <input class="sf-input" data-role="shortcut" placeholder="e.g. ALT+X" style="flex:1;" />
+                                <button class="sf-record-btn" data-action="recordShortcut" data-recording="false" title="Record shortcut">●</button>
+                            </div>
+                            <span class="sf-err-msg" data-err="shortcut"></span>
+                        </div>
+                        <div class="sf-field sf-field-path">
+                            <input class="sf-input" data-role="path" placeholder="path e.g. /sf/home" />
+                            <span class="sf-err-msg" data-err="path"></span>
+                        </div>
+                        <div class="sf-field sf-field-group">
+                            <select class="sf-input" data-role="group" style="height:34px; padding:0 6px; cursor:pointer;"></select>
+                            <span class="sf-err-msg" data-err="group"></span>
+                        </div>
+                        <div class="sf-form-actions">
+                            <button class="sf-btn-primary" data-action="add" title="Add / Save command">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
+                                Save
+                            </button>
+                            <button class="sf-btn-default" data-action="clear" title="Clear form">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Group management bar -->
+                    <div class="sf-group-mgmt">
+                        <span class="sf-group-mgmt-label">📁 Groups:</span>
+                        <input class="sf-new-group-input" data-role="new-group" placeholder="New group name…" />
+                        <button class="sf-btn-xs sf-btn-xs-primary" data-action="addGroup">+ Add Group</button>
+                        <span data-err="group-create" style="color:#bb0000; font-size:11px;"></span>
+                        <div style="margin-left:auto; display:flex; gap:6px;">
+                            <button class="sf-btn-xs" data-action="expandAll">↕ Expand All</button>
+                            <button class="sf-btn-xs" data-action="collapseAll">↕ Collapse All</button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk-move bar -->
+                    <div class="sf-bulk-bar" data-role="bulk-bar">
+                        <span data-role="bulk-count">0 selected</span>
+                        <span>→ Move to:</span>
+                        <select class="sf-bulk-select" data-role="bulk-group"></select>
+                        <button class="sf-btn-xs sf-btn-xs-primary" data-action="bulkMove">Move</button>
+                        <button class="sf-btn-xs" data-action="bulkClear" style="margin-left:4px;">✕ Clear</button>
+                    </div>
+
+                    <!-- Sort bar -->
+                    <div class="sf-sort-bar">
+                        <span>Sort by:</span>
+                        <button class="sf-sort-btn" data-sort="key">Key</button>
+                        <button class="sf-sort-btn" data-sort="label">Label</button>
+                        <button class="sf-sort-btn" data-sort="shortcut">Shortcut</button>
+                        <span class="sf-sort-ind" data-role="sort-indicator"></span>
+                    </div>
+
+                    <!-- Column header -->
+                    <div class="sf-col-header">
+                        <div style="flex:0 0 18px;"></div>
+                        <div style="flex:0 0 12px;"></div>
+                        <div style="flex:0 0 100px;">KEY</div>
+                        <div style="flex:2;">LABEL</div>
+                        <div style="flex:0 0 110px;">SHORTCUT</div>
+                        <div style="flex:3;">PATH</div>
+                        <div style="flex:0 0 80px; text-align:right;">ACTIONS</div>
+                    </div>
+
+                    <!-- Command list (grouped) -->
+                    <div class="sf-list" data-role="list"></div>
+
+                </div>
+
+                <!-- ── FEATURES PANE ── -->
+                <div class="sf-dlg-body" id="sf-pane-features" style="display:none;">
+                    <div class="sf-feat-notice">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;opacity:.55"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        Feature states are saved automatically and restored on every page load.
+                    </div>
+                    <div class="sf-feat-grid" id="sf-feat-grid"></div>
+                </div>
+
+                <div class="sf-dlg-footer">
+                    <label class="sf-import-label" title="Import commands from CSV">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                        Import CSV
+                        <input type="file" data-action="import" accept=".csv" style="display:none;" />
+                    </label>
+                    <button class="sf-btn-default" data-action="export">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>
+                        Export CSV
+                    </button>
+                    <button class="sf-btn-default" data-action="template">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                        Template
+                    </button>
+                    <button class="sf-btn-danger" data-action="reset">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        Reset Storage
+                    </button>
+                </div>
+            </div>`;
+
+            document.body.appendChild(root);
+
+            // grab refs
+            ui.panel      = root.querySelector("#sf-dialog");
+            ui.overlay    = root.querySelector("#sf-overlay");
+            ui.search     = root.querySelector("[data-role='search']");
+            ui.key        = root.querySelector("[data-role='key']");
+            ui.label      = root.querySelector("[data-role='label']");
+            ui.shortcut   = root.querySelector("[data-role='shortcut']");
+            ui.path       = root.querySelector("[data-role='path']");
+            ui.group      = root.querySelector("[data-role='group']");
+            ui.list       = root.querySelector("[data-role='list']");
+            ui.sortInd    = root.querySelector("[data-role='sort-indicator']");
+            ui.record     = root.querySelector("[data-action='recordShortcut']");
+            ui.newGroup   = root.querySelector("[data-role='new-group']");
+            ui.bulkBar    = root.querySelector("[data-role='bulk-bar']");
+            ui.bulkGroup  = root.querySelector("[data-role='bulk-group']");
+            ui.bulkCount  = root.querySelector("[data-role='bulk-count']");
+
+            _bindEvents();
+
+            ui.list.addEventListener("focusout", e => {
+                const input = e.target.closest("[data-group-rename]");
+                if (!input) return;
+                const id      = input.dataset.groupRename;
+                const newName = input.value.trim();
+                if (!newName) { input.value = StateService.getGroups()[id]?.name || ""; return; }
+                const newId = StateService.renameGroup(id, newName);
+                if (newId === false) {
+                    showToast("⚠️ Group name already exists.");
+                    input.value = StateService.getGroups()[id]?.name || "";
+                } else {
+                    showToast(`Group renamed to "${newName}".`);
+                    _render();
+                }
+            }, true);
+
+            _render();
+        }
+
+        // ─────────────────────────────────────────
+        // TAB SWITCHING
+        // ─────────────────────────────────────────
+        function _switchTab(tabName) {
+            root.querySelectorAll(".sf-tab").forEach(t => t.classList.remove("sf-tab-active"));
+            root.querySelector(`.sf-tab[data-tab="${tabName}"]`).classList.add("sf-tab-active");
+            root.querySelector("#sf-pane-commands").style.display = tabName === "commands" ? "" : "none";
+            root.querySelector("#sf-pane-features").style.display = tabName === "features"  ? "" : "none";
+            if (tabName === "features") _renderFeaturesTab();
+        }
+
+        // ─────────────────────────────────────────
+        // FEATURES TAB RENDERER
+        // ─────────────────────────────────────────
+        function _renderFeaturesTab() {
+            const grid   = root.querySelector("#sf-feat-grid");
+            const badge  = root.querySelector("#sf-feat-on-count");
+            const states = FeatureStateService.getStates();
+            let onCount  = 0;
+
+            grid.innerHTML = FeatureStateService.getAll().map(f => {
+                const on = !!states[f.key];
+                if (on) onCount++;
+                return `
+                <div class="sf-feat-card ${on ? "sf-feat-on" : ""}">
+                    <div class="sf-feat-icon">${f.icon}</div>
+                    <div class="sf-feat-body">
+                        <div class="sf-feat-name">${f.label}
+                            ${f.shortcut ? `<span class="sf-feat-sc">${f.shortcut}</span>` : ""}
+                        </div>
+                        <div class="sf-feat-desc">${f.desc}</div>
+                        <div class="sf-feat-status">
+                            <span class="sf-feat-dot ${on ? "sf-on" : ""}"></span>
+                            ${on ? "Active — state saved" : "Inactive"}
+                        </div>
+                    </div>
+                    <button data-feat-toggle="${f.key}"
+                            class="sf-toggle ${on ? "sf-on" : "sf-off"}"
+                            title="${on ? "Turn off" : "Turn on"}">
+                        <span class="sf-toggle-knob"></span>
+                    </button>
+                </div>`;
+            }).join("");
+
+            badge.textContent = onCount > 0 ? `${onCount} on` : "";
+            badge.classList.toggle("sf-visible", onCount > 0);
+
+            grid.querySelectorAll("[data-feat-toggle]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const key    = btn.dataset.featToggle;
+                    const newVal = !FeatureStateService.isOn(key);
+                    FeatureStateService.setState(key, newVal);
+
+                    // Execute the actual feature function
+                    const feat = FeatureStateService.getAll().find(f => f.key === key);
+                    if (feat?.fn) CommandService.run({ function: feat.fn });
+
+                    // Quick Launcher visibility toggle
+                    if (key === "quicklauncher") {
+                        const ql = document.getElementById("sfQuickLauncher-container");
+                        if (ql) ql.style.display = newVal ? "" : "none";
+                    }
+
+                    _renderFeaturesTab();
+                });
+            });
+        }
+
+        // ─────────────────────────────────────────
+        // GROUP SELECTOR HELPERS
+        // ─────────────────────────────────────────
+        function _refreshGroupSelects(selectedName) {
+            const groups = StateService.getGroupsSorted();
+            const opts   = groups.map(g =>
+                `<option value="${_esc(g.name)}" ${g.name === selectedName ? "selected" : ""}>${_esc(g.name)}</option>`
+            ).join("");
+            ui.group.innerHTML     = opts;
+            ui.bulkGroup.innerHTML = opts;
+        }
+
+        function _esc(s) { return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+        // ─────────────────────────────────────────
+        // RENDER  — grouped accordion list
+        // ─────────────────────────────────────────
+        function _render() {
+            const filter = (ui.search.value || "").toLowerCase();
+            const cmds   = StateService.getCommands();
+            const groups = StateService.getGroupsSorted();
+
+            if (ui.sortInd) {
+                ui.sortInd.textContent = `${sortField} ${{ "1": "▲", "-1": "▼" }[String(sortDir)]}`;
+            }
+
+            _refreshGroupSelects(ui.group.value);
+
+            const buckets = {};
+            groups.forEach(g => { buckets[g.name] = []; });
+
+            let allEntries = Object.entries(cmds)
+                .filter(([k, v]) => !filter || k.includes(filter) || (v.label || "").toLowerCase().includes(filter));
+
+            allEntries.sort(([ak, av], [bk, bv]) => {
+                let a = "", b = "";
+                if (sortField === "key")      { a = ak;                b = bk; }
+                if (sortField === "label")    { a = av.label || "";    b = bv.label || ""; }
+                if (sortField === "shortcut") { a = av.shortcut || ""; b = bv.shortcut || ""; }
+                return a.localeCompare(b) * sortDir;
+            });
+
+            allEntries.forEach(([k, v]) => {
+                const gName = (v.group || "General").trim();
+                if (!buckets[gName]) buckets[gName] = [];
+                buckets[gName].push([k, v]);
+            });
+
+            const html = groups.map(g => {
+                const items      = buckets[g.name] || [];
+                const collapsed  = !!collapsedGroups[g.name];
+                const isSystem   = g.name === "System";
+                const inUse      = items.length > 0;
+
+                const header = `
+                <div class="sf-group-header"
+                     data-group-id="${_esc(g.id)}"
+                     data-group-name="${_esc(g.name)}"
+                     draggable="true"
+                     data-droptarget="group">
+                    <span class="sf-group-drag-handle" title="Drag to reorder group">⠿</span>
+                    <span class="sf-group-arrow ${collapsed ? "sf-collapsed" : ""}">▾</span>
+                    <span class="sf-group-name-wrap">
+                        <span class="sf-group-name">${_esc(g.name)}</span>
+                        <input class="sf-group-name-input" value="${_esc(g.name)}"
+                               data-group-rename="${_esc(g.id)}" />
+                        <span class="sf-group-count">(${items.length})</span>
+                    </span>
+                    <span class="sf-group-actions">
+                        <button class="sf-group-btn" data-group-edit="${_esc(g.id)}" title="Rename group">✎</button>
+                        ${!isSystem ? `<button class="sf-group-btn sf-group-btn-del"
+                            data-group-del="${_esc(g.id)}"
+                            title="${inUse ? "Cannot delete — group has commands" : "Delete group"}"
+                            ${inUse ? "disabled style=\"opacity:.4;cursor:not-allowed;\"" : ""}>🗑</button>` : ""}
+                    </span>
+                </div>`;
+
+                const rows = collapsed ? "" : items.map(([k, v]) => {
+                    const isOn        = v.toggleable && !!toggleStates[k];
+                    const isSelected  = selectedRows.has(k); v.toggleable = false;
+                    const toggleBtn   = v.toggleable
+                        ? `<button data-toggle="${k}" class="sf-toggle ${isOn ? "sf-on" : "sf-off"}"
+                                title="${isOn ? "Active" : "Inactive"}"><span class="sf-toggle-knob"></span></button>`
+                        : "";
+                    const actions     = v.system
+                        ? `<div class="sf-row-actions" style="gap:6px;align-items:center;">
+                               ${toggleBtn}
+                               ${!v.toggleable ? '<span class="sf-lock" title="System command">🔒</span>' : ""}
+                           </div>`
+                        : `<div class="sf-row-actions">
+                               <button class="sf-btn-edit" data-edit="${k}" title="Edit">✎</button>
+                               <button class="sf-btn-del"  data-del="${k}"  title="Delete">🗑</button>
+                           </div>`;
+                    const shortcutHtml = v.shortcut ? `<span class="sf-kbd">${_esc(v.shortcut)}</span>` : "";
+                    const systemBadge  = v.system    ? `<span class="sf-badge">system</span>` : "";
+
+                    return `
+                    <div class="sf-row ${isSelected ? "sf-row-selected" : ""}"
+                         data-cmd-key="${k}"
+                         data-cmd-group="${_esc(v.group || "General")}"
+                         draggable="true"
+                         data-droptarget="row">
+                        <div class="sf-row-cb">
+                            <input type="checkbox" data-cb="${k}" ${isSelected ? "checked" : ""} />
+                        </div>
+                        <div class="sf-row-drag" title="Drag to move to another group">⠿</div>
+                        <div class="sf-row-key">${_esc(k)}</div>
+                        <div class="sf-row-label">${_esc(v.label || "")}${systemBadge}</div>
+                        <div class="sf-row-shortcut">${shortcutHtml}</div>
+                        <div class="sf-row-path">${_esc(v.path)}</div>
+                        ${actions}
+                    </div>`;
+                }).join("");
+
+                return header + (collapsed ? "" : `<div data-group-body="${_esc(g.name)}">${rows}</div>`);
+            }).join("");
+
+            ui.list.innerHTML = html || "<div style='padding:12px;color:#888;font-size:13px;'>No commands found.</div>";
+
+            _bindListDelegation();
+            _bindDragDrop();
+            _updateBulkBar();
+        }
+
+        // ─────────────────────────────────────────
+        // LIST EVENT DELEGATION
+        // ─────────────────────────────────────────
+        function _bindListDelegation() {
+            ui.list.onclick = e => {
+                const cb = e.target.closest("[data-cb]");
+                if (cb && cb.tagName === "INPUT") {
+                    const key = cb.dataset.cb;
+                    cb.checked ? selectedRows.add(key) : selectedRows.delete(key);
+                    _updateBulkBar();
+                    return;
+                }
+
+                const editBtn = e.target.closest("[data-edit]");
+                if (editBtn) { _edit(editBtn.dataset.edit); return; }
+
+                const delBtn = e.target.closest("[data-del]");
+                if (delBtn) {
+                    StateService.removeCommand(delBtn.dataset.del);
+                    selectedRows.delete(delBtn.dataset.del);
+                    _render();
+                    showToast("Command removed.");
+                    return;
+                }
+
+                const toggleBtn = e.target.closest("[data-toggle]");
+                if (toggleBtn) {
+                    const cmd = StateService.getCommands()[toggleBtn.dataset.toggle];
+                    if (cmd) CommandService.run(cmd);
+                    return;
+                }
+
+                const groupEdit = e.target.closest("[data-group-edit]");
+                if (groupEdit) {
+                    e.stopPropagation();
+                    const header = groupEdit.closest(".sf-group-header");
+                    const nameSpan  = header.querySelector(".sf-group-name");
+                    const nameInput = header.querySelector(".sf-group-name-input");
+                    nameSpan.style.display  = "none";
+                    nameInput.style.display = "inline-block";
+                    nameInput.focus();
+                    nameInput.select();
+                    return;
+                }
+
+                const groupDel = e.target.closest("[data-group-del]");
+                if (groupDel && !groupDel.hasAttribute("disabled")) {
+                    e.stopPropagation();
+                    const id = groupDel.dataset.groupDel;
+                    if (!StateService.deleteGroup(id)) {
+                        showToast("⚠️ Cannot delete — group still has commands.");
+                    } else {
+                        showToast("Group deleted.");
+                        _render();
+                    }
+                    return;
+                }
+
+                const header = e.target.closest(".sf-group-header");
+                if (header && !e.target.closest(".sf-group-actions") && !e.target.closest(".sf-group-name-input")) {
+                    const gName = header.dataset.groupName;
+                    collapsedGroups[gName] = !collapsedGroups[gName];
+                    const arrow = header.querySelector(".sf-group-arrow");
+                    const body  = header.nextElementSibling;
+                    const col   = collapsedGroups[gName];
+                    arrow.classList.toggle("sf-collapsed", col);
+                    if (body && body.dataset.groupBody !== undefined) body.style.display = col ? "none" : "";
+                    return;
+                }
+            };
+
+            ui.list.onkeydown = e => {
+                const input = e.target.closest("[data-group-rename]");
+                if (!input) return;
+                if (e.key === "Enter")  { input.blur(); }
+                if (e.key === "Escape") {
+                    const header = input.closest(".sf-group-header");
+                    header.querySelector(".sf-group-name").style.display = "";
+                    input.style.display = "none";
+                }
+            };
+        }
+
+        // ─────────────────────────────────────────
+        // DRAG & DROP
+        // ─────────────────────────────────────────
+        function _bindDragDrop() {
+            ui.list.addEventListener("dragstart", e => {
+                const row    = e.target.closest("[data-cmd-key]");
+                const header = e.target.closest(".sf-group-header[draggable]");
+
+                if (row) {
+                    dragState = { type: "row", key: row.dataset.cmdKey, fromGroup: row.dataset.cmdGroup };
+                    row.classList.add("sf-dragging");
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", row.dataset.cmdKey);
+                } else if (header) {
+                    dragState = { type: "group", id: header.dataset.groupId, name: header.dataset.groupName };
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", header.dataset.groupId);
+                }
+            }, true);
+
+            ui.list.addEventListener("dragend", e => {
+                ui.list.querySelectorAll(".sf-dragging").forEach(el => el.classList.remove("sf-dragging"));
+                ui.list.querySelectorAll(".sf-drag-over").forEach(el => el.classList.remove("sf-drag-over"));
+                dragState = {};
+            }, true);
+
+            ui.list.addEventListener("dragover", e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const groupHeader = e.target.closest(".sf-group-header");
+                const row         = e.target.closest(".sf-row");
+                ui.list.querySelectorAll(".sf-drag-over").forEach(el => el.classList.remove("sf-drag-over"));
+                if (groupHeader && dragState.type === "row") groupHeader.classList.add("sf-drag-over");
+                if (groupHeader && dragState.type === "group") groupHeader.classList.add("sf-drag-over");
+                if (row && dragState.type === "row") row.classList.add("sf-drag-over");
+            }, true);
+
+            ui.list.addEventListener("dragleave", e => {
+                const target = e.target.closest(".sf-group-header, .sf-row");
+                if (target) target.classList.remove("sf-drag-over");
+            }, true);
+
+            ui.list.addEventListener("drop", e => {
+                e.preventDefault();
+                ui.list.querySelectorAll(".sf-drag-over").forEach(el => el.classList.remove("sf-drag-over"));
+
+                if (dragState.type === "row") {
+                    const groupHeader = e.target.closest(".sf-group-header");
+                    if (groupHeader) {
+                        const targetGroup = groupHeader.dataset.groupName;
+                        if (targetGroup !== dragState.fromGroup) {
+                            StateService.moveCommandToGroup(dragState.key, targetGroup);
+                            showToast(`Moved "${dragState.key}" → ${targetGroup}`);
+                            _render();
+                        }
+                    }
+                } else if (dragState.type === "group") {
+                    const targetHeader = e.target.closest(".sf-group-header");
+                    if (targetHeader && targetHeader.dataset.groupId !== dragState.id) {
+                        _reorderGroupByDrop(dragState.id, targetHeader.dataset.groupId);
+                    }
+                }
+                dragState = {};
+            }, true);
+        }
+
+        function _reorderGroupByDrop(draggedId, targetId) {
+            const groups = StateService.getGroups();
+            if (!groups[draggedId] || !groups[targetId]) return;
+            const sorted = StateService.getGroupsSorted();
+            const from   = sorted.findIndex(g => g.id === draggedId);
+            const to     = sorted.findIndex(g => g.id === targetId);
+            if (from === -1 || to === -1 || from === to) return;
+            const [moved] = sorted.splice(from, 1);
+            sorted.splice(to, 0, moved);
+            StateService.reorderGroups(sorted.map(g => g.id));
+            _render();
+        }
+
+        // ─────────────────────────────────────────
+        // BULK MOVE
+        // ─────────────────────────────────────────
+        function _updateBulkBar() {
+            const visible = selectedRows.size > 0;
+            ui.bulkBar.classList.toggle("sf-visible", visible);
+            if (visible) ui.bulkCount.textContent = `${selectedRows.size} selected`;
+        }
+
+        function _doBulkMove() {
+            const targetGroup = ui.bulkGroup.value;
+            if (!targetGroup) return;
+            selectedRows.forEach(key => {
+                if (!StateService.getCommands()[key]?.system)
+                    StateService.moveCommandToGroup(key, targetGroup);
+            });
+            showToast(`Moved ${selectedRows.size} command(s) → ${targetGroup}`);
+            selectedRows.clear();
+            _render();
+        }
+
+        // ─────────────────────────────────────────
+        // LIVE VALIDATION
+        // ─────────────────────────────────────────
+        function _bindLiveValidation() {
+            [ui.key, ui.shortcut, ui.path].forEach(input =>
+                input.addEventListener("input", _runLiveValidation));
+        }
+
+        function _runLiveValidation() {
+            const key      = ui.key.value.trim();
+            const shortcut = ui.shortcut.value.trim().toUpperCase();
+            const path     = ui.path.value.trim();
+            const errors   = ValidationService.validateForm(key, shortcut, path, editKey);
+            ["key", "label", "shortcut", "path"].forEach(f => _setFieldError(f, ""));
+            errors.forEach(e => _setFieldError(e.field, e.message));
+            _setInputError(ui.key,      errors.some(e => e.field === "key"));
+            _setInputError(ui.shortcut, errors.some(e => e.field === "shortcut"));
+            _setInputError(ui.path,     errors.some(e => e.field === "path"));
+        }
+
+        function _setFieldError(field, msg) {
+            const el = root.querySelector(`[data-err="${field}"]`);
+            if (el) el.textContent = msg;
+        }
+
+        function _setInputError(input, hasError) {
+            if (!input) return;
+            input.classList.toggle("sf-error", hasError);
+        }
+
+        function _clearValidation() {
+            ["key", "label", "shortcut", "path"].forEach(f => _setFieldError(f, ""));
+            [ui.key, ui.label, ui.shortcut, ui.path].forEach(i => i && i.classList.remove("sf-error"));
+        }
+
+        // ─────────────────────────────────────────
+        // SHORTCUT RECORDER
+        // ─────────────────────────────────────────
+        let RecorderBlinkTimer = null;
+        function _RecorderNormalizeKey(k) {
+            if (k === "Control") return "CTRL";
+            if (k === "Alt")     return "ALT";
+            if (k === "Shift")   return "SHIFT";
+            if (k === "Meta")    return "CMD";
+            return k.toUpperCase();
+        }
+        function stopRecording() {
+            clearInterval(RecorderBlinkTimer);
+            ui.record.textContent = "●";
+            ui.record.style.opacity = "1";
+            ui.record.classList.remove("sf-recording");
+            ui.record.dataset.recording = "false";
+        }
+        function handleRecordingButton() {
+            const recording = ui.record.dataset.recording === "true";
+            ui.record.dataset.recording = !recording;
+            if (ui.record.dataset.recording === "false") { stopRecording(); return; }
+            ui.record.textContent = "■";
+            ui.shortcut.value = "";
+            ui.record.classList.add("sf-recording");
+            RecorderBlinkTimer = setInterval(() => {
+                ui.record.style.opacity = ui.record.style.opacity === "0.4" ? "1" : "0.4";
+            }, 400);
+            ui.shortcut.focus();
+            document.addEventListener("keydown", e => {
+                if (ui.record.dataset.recording === "false") return;
+                e.preventDefault(); e.stopPropagation();
+                const parts = [];
+                if (e.ctrlKey)  parts.push("CTRL");
+                if (e.altKey)   parts.push("ALT");
+                if (e.shiftKey) parts.push("SHIFT");
+                if (e.metaKey)  parts.push("CMD");
+                const k = _RecorderNormalizeKey(e.key);
+                if (!["CTRL", "ALT", "SHIFT", "CMD"].includes(k)) parts.push(k);
+                ui.shortcut.value = parts.join("+");
+            });
+            document.addEventListener("keyup", e => {
+                if (ui.record.dataset.recording === "false") return;
+                const k = _RecorderNormalizeKey(e.key);
+                if (!["CTRL", "ALT", "SHIFT", "CMD"].includes(k)) stopRecording();
+            });
+        }
+
+        // ─────────────────────────────────────────
+        // EVENTS
+        // ─────────────────────────────────────────
+        function _bindEvents() {
+            root.addEventListener("click", e => {
+                const a = e.target.closest("[data-action]")?.dataset.action;
+                if (!a) return;
+
+                if (a === "close")          _close();
+                if (a === "resetSearch")    _resetSearch();
+                if (a === "add")            _add();
+                if (a === "clear")          _clear();
+                if (a === "export")         _exportCSV();
+                if (a === "template")       _downloadTemplate();
+                if (a === "recordShortcut") handleRecordingButton();
+                if (a === "reset") {
+                    if (confirm("Reset all commands to defaults? This cannot be undone.")) {
+                        StateService.reset();
+                        selectedRows.clear();
+                        collapsedGroups = {};
+                        _render();
+                        showToast("Commands reset to defaults.");
+                    }
+                }
+
+                if (a === "addGroup")    _addGroup();
+                if (a === "expandAll")  { collapsedGroups = {};  _render(); }
+                if (a === "collapseAll"){ StateService.getGroupsSorted().forEach(g => { collapsedGroups[g.name] = true; }); _render(); }
+                if (a === "bulkMove")   _doBulkMove();
+                if (a === "bulkClear")  { selectedRows.clear(); _render(); }
+            });
+
+            root.addEventListener("change", e => {
+                if (e.target.dataset.action === "import") _importCSV(e);
+            });
+
+            root.addEventListener("input", e => {
+                if (e.target.dataset.role === "search") _render();
+            });
+
+            // Tab switching
+            root.querySelectorAll(".sf-tab").forEach(btn => {
+                btn.addEventListener("click", () => _switchTab(btn.dataset.tab));
+            });
+
+            root.querySelectorAll("[data-sort]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const field = btn.dataset.sort;
+                    if (sortField === field) sortDir *= -1;
+                    else { sortField = field; sortDir = 1; }
+                    _render();
+                });
+            });
+
+            ui.overlay.addEventListener("click", _close);
+
+            document.addEventListener("keydown", e => {
+                if (e.altKey && (e.key === "ß" || e.key === "?")) { _toggle(); e.preventDefault(); }
+                if (e.altKey && e.key === "o")                     { _open();   e.preventDefault(); }
+                if (e.key === "Escape")                             { _close(); }
+                const cmd = CommandService.findMatchingCommand(e);
+                if (cmd) { e.preventDefault(); e.stopPropagation(); CommandService.run(cmd); }
+            });
+
+            _bindLiveValidation();
+        }
+
+        // ─────────────────────────────────────────
+        // CRUD
+        // ─────────────────────────────────────────
+        function _add() {
+            const key      = ui.key.value.trim();
+            const label    = ui.label.value.trim();
+            const path     = ui.path.value.trim();
+            const shortcut = ui.shortcut.value.trim().toUpperCase();
+            const group    = ui.group.value || "General";
+
+            const errors = ValidationService.validateForm(key, shortcut, path, editKey);
+            if (errors.length) { errors.forEach(e => _setFieldError(e.field, e.message)); return; }
+
+            const cmds = StateService.getCommands();
+            if (editKey && editKey !== key) delete cmds[editKey];
+
+            StateService.addCommand(key, { label, path, shortcut, group, system: false });
+            showToast(editKey ? `Command "${key}" updated.` : `Command "${key}" added.`);
+            editKey = null;
+            _clear();
+            _render();
+        }
+
+        function _addGroup() {
+            const name = ui.newGroup.value.trim();
+            const errEl = root.querySelector("[data-err='group-create']");
+            errEl.textContent = "";
+            if (!name) { errEl.textContent = "Name is required."; return; }
+            const result = StateService.addGroup(name);
+            if (!result) { errEl.textContent = "Group already exists."; return; }
+            ui.newGroup.value = "";
+            showToast(`Group "${name}" created.`);
+            _render();
+        }
+
+        function _resetSearch() { ui.search.value = ""; _render(); }
+
+        function _clear() {
+            ui.key.value = ui.label.value = ui.path.value = ui.shortcut.value = "";
+            editKey = null;
+            _clearValidation();
+        }
+
+        function _edit(key) {
+            const c = StateService.getCommands()[key];
+            if (!c) return;
+            editKey = key;
+            ui.key.value      = key;
+            ui.label.value    = c.label    || "";
+            ui.path.value     = c.path     || "";
+            ui.shortcut.value = c.shortcut || "";
+            _refreshGroupSelects(c.group || "General");
+            _clearValidation();
+            ui.key.focus();
+            // Switch to commands tab if on features
+            _switchTab("commands");
+        }
+
+        // ─────────────────────────────────────────
+        // IMPORT / EXPORT
+        // ─────────────────────────────────────────
+        function _importCSV(e) {
+            const defaults = StateService.getDefaultCommands();
+            const file = e.target.files[0];
+            if (!file) return;
+            const r = new FileReader();
+            r.onload = ev => {
+                let count = 0;
+                ev.target.result.split("\n").forEach((line, idx) => {
+                    if (idx === 0) return;
+                    const [group, key, label, path, shortcut] = line.split(",");
+                    if (!key || !path || defaults[key]) return;
+                    StateService.addCommand(key.trim(), {
+                        group:    (group    || "General").trim(),
+                        label:    (label    || "").trim(),
+                        path:     path.trim(),
+                        shortcut: (shortcut || "").trim().toUpperCase(),
+                        function: "",
+                        toggleable: false,
+                        system:   false
+                    });
+                    count++;
+                });
+                _render();
+                showToast(`Imported ${count} command(s).`);
+                e.target.value = "";
+            };
+            r.readAsText(file);
+        }
+
+        function _exportCSV() {
+            const defaults = StateService.getDefaultCommands();
+            let csv = "group,key,label,path,shortcut\n";
+            csv += Object.entries(StateService.getCommands())
+                .filter(([k]) => !defaults[k])
+                .map(([k, v]) => `${v.group || ""},${k},${v.label || ""},${v.path},${v.shortcut || ""}`)
+                .join("\n");
+            _download(csv, "sf-plugin-commands.csv", "text/csv");
+            showToast("CSV exported.");
+        }
+
+        function _downloadTemplate() {
+            const csv = "group,key,label,path,shortcut\nHR Tools,example,My Link,/sf/home,ALT+X\nReporting,report,My Report,/sf/reports,";
+            _download(csv, "sf-plugin-template.csv", "text/csv");
+        }
+
+        function _download(content, filename, type) {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([content], { type }));
+            a.download = filename;
+            a.click();
+        }
+
+        // ─────────────────────────────────────────
+        // OPEN / CLOSE / TOGGLE
+        // ─────────────────────────────────────────
+        function _open()   { ui.panel.classList.add("sf-open"); ui.overlay.style.display = "block"; }
+        function _close()  { ui.panel.classList.remove("sf-open"); ui.overlay.style.display = "none"; }
+        function _toggle() { ui.panel.classList.contains("sf-open") ? _close() : _open(); }
+
+        function updateToggleState(key, on) { toggleStates[key] = on; _render(); }
+
+        function showToast(msg) {
+            const existing = document.querySelector(".sf-toast.sf-info-toast");
+            if (existing) existing.remove();
+            const t = document.createElement("div");
+            t.className = "sf-toast sf-info-toast";
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.remove(), 400); }, 2400);
+        }
+
+        // ─────────────────────────────────────────
+        // SHELL HEADER BUTTON
+        // ─────────────────────────────────────────
+        function addShellItemButton() {
+            const ctrl = window.BizXHeaderController;
+            if (ctrl?.addShellbarItem) {
+                if (!document.getElementById("sf-plugin-shell-headerItem-button")) {
+                    ctrl.addShellbarItem({ icon: "keyboard-and-mouse", text: "Power User Tool",
+                        press: () => _toggle(), id: "sf-plugin-shell-headerItem-button",
+                        stableDomRef: "sf-plugin-shell-headerItem-button", helpId: "sf-plugin-shell-headerItem-button", title: "Power User Tool" });
+                }
+                if (!document.getElementById("sf-plugin-shell-headerItem-darkMode")) {
+                    ctrl.addShellbarItem({ icon: "dark-mode", text: "Switch Dark Mode",
+                        press: () => CommandService.toggleDarkMode(), id: "sf-plugin-shell-headerItem-darkMode",
+                        stableDomRef: "sf-plugin-shell-headerItem-darkMode", helpId: "sf-plugin-shell-headerItem-darkMode", title: "Switch Dark Mode" });
+                }
+            }
+        }
+
+        return { init, updateToggleState, toggle: _toggle, showToast, addShellItemButton };
+    })();
+
+    // ─────────────────────────────────────────────
+    // QUICK LAUNCHER
+    // ─────────────────────────────────────────────
+    const QuickLauncher = (() => {
+        let launcherMenu      = null;
+        let launcherContainer = null;
+        let collapsedGroups   = {};
+
+        function init() {
+            const LauncherRoot = document.createElement("div");
+            LauncherRoot.id = "sfQuickLauncher-root";
+            LauncherRoot.innerHTML = `
+            <div id="sfQuickLauncher-container" style="position:fixed; top:10px; left:5px; z-index:9999;">
+                <button id="sfQuickLauncher-toggle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path d="M6 2C4.9 2 4 2.9 4 4V22L12 18L20 22V4C20 2.9 19.1 2 18 2H6Z"/>
+                    </svg>
+                    Quick Links
+                    <span id="sf-keepalive-badge" title="Keep Alive is ON"
+                          style="display:none;width:8px;height:8px;border-radius:50%;
+                                 background:#4cff91;box-shadow:0 0 5px #4cff91;"></span>
+                </button>
+                <div id="sfQuickLauncher-menu"></div>
+            </div>`;
+
+            document.body.appendChild(LauncherRoot);
+            launcherContainer = LauncherRoot.querySelector("#sfQuickLauncher-container");
+            launcherMenu      = LauncherRoot.querySelector("#sfQuickLauncher-menu");
+            const toggle      = LauncherRoot.querySelector("#sfQuickLauncher-toggle");
+
+            toggle.onclick = e => {
+                e.stopPropagation();
+                const isOpen = launcherMenu.style.display === "block";
+                if (!isOpen) _renderMenu();
+                launcherMenu.style.display = isOpen ? "none" : "block";
+            };
+            document.addEventListener("click", e => {
+                if (!launcherContainer.contains(e.target)) launcherMenu.style.display = "none";
+            });
+        }
+
+        function _buildTree() {
+            const cmds   = StateService.getCommands();
+            const sorted = StateService.getGroupsSorted();
+            const tree   = {};
+            sorted.forEach(g => { tree[g.name] = []; });
+            Object.entries(cmds)
+                .filter(([, v]) => v.path && v.path.startsWith("/"))
+                .forEach(([k, v]) => {
+                    const gName = (v.group || "General").trim();
+                    if (!tree[gName]) tree[gName] = [];
+                    tree[gName].push([k, v]);
+                });
+            return tree;
+        }
+
+        function _renderMenu() {
+            const tree   = _buildTree();
+            launcherMenu.innerHTML = "";
+
+            Object.entries(tree).forEach(([group, items]) => {
+                if (!items.length) return;
+                const isCollapsed = !!collapsedGroups[group];
+
+                const header = document.createElement("div");
+                header.className = "sf-ql-group-header";
+                header.innerHTML = `
+                    <span>
+                        <span class="sf-arrow" style="display:inline-block;margin-right:5px;
+                            transition:transform .15s;transform:${isCollapsed ? "rotate(-90deg)" : "rotate(0deg)"};">▾</span>
+                        📁 ${group}
+                        <span style="margin-left:5px;font-size:10px;color:#888;font-weight:normal;">(${items.length})</span>
+                    </span>`;
+                header.onclick = () => {
+                    collapsedGroups[group] = !collapsedGroups[group];
+                    const arrow = header.querySelector(".sf-arrow");
+                    const body  = header.nextElementSibling;
+                    const col   = collapsedGroups[group];
+                    arrow.style.transform = col ? "rotate(-90deg)" : "rotate(0deg)";
+                    body.style.display    = col ? "none" : "block";
+                };
+                launcherMenu.appendChild(header);
+
+                const body = document.createElement("div");
+                body.style.display = isCollapsed ? "none" : "block";
+                items.forEach(([k, v]) => {
+                    const item = document.createElement("div");
+                    item.className = "sf-ql-item";
+                    item.innerHTML = `<span>${v.label || k}</span><span style="opacity:.35;">↗</span>`;
+                    item.onclick   = () => { window.open(DOMHelper.navUrl(v.path), "_blank", "noopener,noreferrer"); launcherMenu.style.display = "none"; };
+                    body.appendChild(item);
+                });
+                launcherMenu.appendChild(body);
+            });
+
+            const manage = document.createElement("div");
+            manage.className = "sf-ql-manage";
+            manage.innerHTML = `<span>⚙</span><span>Manage Commands</span>`;
+            manage.onclick = e => { e.stopPropagation(); launcherMenu.style.display = "none"; UIModule.toggle(); };
+            launcherMenu.appendChild(manage);
+        }
+
+        return { init };
+    })();
+
+    // ─────────────────────────────────────────────
+    // SEARCH BAR COMMAND HANDLER
+    // ─────────────────────────────────────────────
+    const SearchBarHandler = (() => {
+        function attach() {
+            const el = DOMHelper.getActiveSearchField();
+            if (!el) return;
+            const input = DOMHelper.getInput(el);
+            if (!input || input.dataset.sfBound) return;
+            input.dataset.sfBound = "true";
+            input.addEventListener("keydown", e => {
+                if (e.key === "Enter") {
+                    const val = input.value.trim();
+                    if (val.startsWith("/") && CommandService.executeFromSearchBar(val)) {
+                        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                    }
+                }
+            });
+        }
+        return { attach };
+    })();
+
+    // ─────────────────────────────────────────────
+    // BOOT
+    // ─────────────────────────────────────────────
+    StateService.load();
+    UIModule.init();
+    QuickLauncher.init();
+
+    // Restore persisted feature states on every page load
+    (function restoreFeatures() {
+        if (FeatureStateService.isOn("keepalive")) {
+            KeepAliveService.toggle();
+        }
+        if (FeatureStateService.isOn("darkmode")) {
+            CommandService.toggleDarkMode();
+        }
+        // Quick Launcher is visible by default; hide only if user explicitly turned it off
+        if (FeatureStateService.isOn("quicklauncher") === false &&
+            localStorage.getItem(CONFIG.FEATURE_KEY) !== null) {
+            const stored = JSON.parse(localStorage.getItem(CONFIG.FEATURE_KEY) || "{}");
+            if (stored.hasOwnProperty("quicklauncher") && stored.quicklauncher === false) {
+                const ql = document.getElementById("sfQuickLauncher-container");
+                if (ql) ql.style.display = "none";
+            }
+        }
+    })();
+
+    const observer = new MutationObserver(() => {
+        SearchBarHandler.attach();
+        UIModule.addShellItemButton();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+})();

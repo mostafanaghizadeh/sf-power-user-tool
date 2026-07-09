@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SF Power User Tool</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <header class="pu-header">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+        <path d="M6 2C4.9 2 4 2.9 4 4V22L12 18L20 22V4C20 2.9 19.1 2 18 2H6Z" />
+      </svg>
+      <span>SF Power User Tool</span>
+    </header>
+
+    <main class="pu-body">
+      <p class="pu-status" data-role="status">Checking active tab…</p>
+
+      <button class="pu-btn pu-btn-primary" data-action="open" disabled>
+        Open Power User Tool
+      </button>
+
+      <section class="pu-features">
+        <label class="pu-toggle-row">
+          <span>🔁 Keep Alive</span>
+          <input type="checkbox" data-feature="keepalive" />
+        </label>
+        <label class="pu-toggle-row">
+          <span>🌙 Dark Mode</span>
+          <input type="checkbox" data-feature="darkmode" />
+        </label>
+        <label class="pu-toggle-row">
+          <span>⚡ Quick Launcher</span>
+          <input type="checkbox" data-feature="quicklauncher" />
+        </label>
+      </section>
+
+      <button class="pu-btn" data-action="options">⚙ Manage commands &amp; settings</button>
+    </main>
+
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>

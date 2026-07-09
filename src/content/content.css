@@ -1,0 +1,515 @@
+/* ── Reset inside our root ── */
+    #sf-root *, #sf-overlay { box-sizing: border-box; }
+
+    /* ── Overlay backdrop ── */
+    #sf-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 999997;
+    }
+
+    /* ── Dialog shell ── */
+    #sf-root .sf-dialog {
+        display: none;
+        position: fixed;
+        top: 5vh; left: 50%;
+        transform: translateX(-50%);
+        width: 960px; max-width: 98vw;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 8px 40px rgba(0,0,0,.32);
+        font-family: 72, "72full", Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        color: #32363a;
+        z-index: 999998;
+        overflow: hidden;
+        flex-direction: column;
+    }
+    #sf-root .sf-dialog.sf-open { display: flex; }
+
+    /* ── Dialog header ── */
+    #sf-root .sf-dlg-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px;
+        background: #38164a;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-dlg-title {
+        display: flex; align-items: center; gap: 10px;
+        color: #fff; font-size: 15px; font-weight: 600;
+    }
+    #sf-root .sf-btn-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px;
+        border: none; border-radius: 4px; cursor: pointer;
+        background: transparent; color: #fff; font-size: 16px;
+        transition: background .15s;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-btn-icon:hover { background: rgba(150,150,150,.58); }
+
+    /* ── Tabs ── */
+    #sf-root .sf-dlg-tabs {
+        display: flex; border-bottom: 1px solid #e0e0e0;
+        background: #fafafa; flex-shrink: 0;
+    }
+    #sf-root .sf-tab {
+        flex: 1; padding: 10px 16px; border: none; background: transparent;
+        cursor: pointer; font-size: 13px; font-weight: 400; color: #6a6d70;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        border-bottom: 2px solid transparent; font-family: inherit;
+        transition: all .15s;
+    }
+    #sf-root .sf-tab:hover { background: #fff; color: #32363a; }
+    #sf-root .sf-tab.sf-tab-active {
+        color: #38164a; border-bottom: 2px solid #38164a;
+        background: #fff; font-weight: 600;
+    }
+    #sf-root .sf-feat-badge {
+        background: #f0ecf5; color: #38164a; font-size: 10px;
+        padding: 1px 6px; border-radius: 10px; min-width: 14px;
+        display: none;
+    }
+    #sf-root .sf-feat-badge.sf-visible { display: inline-block; }
+
+    /* ── Dialog body ── */
+    #sf-root .sf-dlg-body {
+        padding: 14px 16px;
+        display: flex; flex-direction: column; gap: 10px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* ── Search row ── */
+    #sf-root .sf-search-wrap {
+        display: flex; align-items: center; gap: 6px;
+    }
+    #sf-root .sf-search-wrap .sf-input { flex: 1; }
+    #sf-root .sf-btn-ghost {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 34px; padding: 0 10px;
+        border: 1px solid #c0c0c0; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-size: 13px;
+        font-family: inherit;
+        transition: background .15s, border-color .15s;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-btn-ghost:hover { background: #f5f5f5; border-color: #999; }
+
+    /* ── Form area ── */
+    #sf-root .sf-form-area {
+        display: flex; gap: 8px; align-items: flex-start;
+        background: #f7f7f7;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 10px;
+    }
+    #sf-root .sf-field { display: flex; flex-direction: column; gap: 2px; }
+    #sf-root .sf-field-key      { flex: 0 0 100px; }
+    #sf-root .sf-field-label    { flex: 2; }
+    #sf-root .sf-field-shortcut { flex: 2; }
+    #sf-root .sf-field-path     { flex: 3; }
+    #sf-root .sf-field-group    { flex: 0 0 140px; }
+
+    #sf-root .sf-input {
+        height: 34px; padding: 0 8px;
+        border: 1px solid #bababa;
+        border-radius: 4px;
+        font-family: inherit; font-size: 13px; color: #32363a;
+        background: #fff;
+        width: 100%;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    #sf-root .sf-input:focus {
+        border-color: #0064d9;
+        box-shadow: 0 0 0 2px rgba(0,100,217,.15);
+    }
+    #sf-root .sf-input.sf-error {
+        border-color: #bb0000;
+        box-shadow: 0 0 0 2px rgba(187,0,0,.12);
+    }
+    #sf-root .sf-err-msg {
+        color: #bb0000; font-size: 11px; min-height: 14px; display: block;
+    }
+
+    /* ── Record shortcut row ── */
+    #sf-root .sf-shortcut-row { display: flex; align-items: center; gap: 4px; }
+    #sf-root .sf-record-btn {
+        width: 26px; height: 26px; flex-shrink: 0;
+        transition: background .15s, border-color .15s;
+        font-family: inherit;
+        border: none; border-radius: 50%;
+        background: #666; color: #fff; cursor: pointer; font-size: 18px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #sf-root .sf-record-btn:hover { background: #999; }
+    #sf-root .sf-record-btn.sf-recording { background: #bb0000; color: #fff; border-color: #bb0000; }
+
+    /* ── Form action buttons ── */
+    #sf-root .sf-form-actions {
+        display: flex; gap: 4px; padding-top: 2px; flex-shrink: 0; align-self: flex-start;
+    }
+    #sf-root .sf-btn-primary {
+        height: 34px; padding: 0 14px;
+        border: none; border-radius: 4px; cursor: pointer;
+        background: #0064d9; color: #fff; font-size: 13px; font-weight: 600;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        transition: background .15s;
+    }
+    #sf-root .sf-btn-primary:hover { background: #0058c0; }
+    #sf-root .sf-btn-default {
+        height: 34px; padding: 0 12px;
+        border: 1px solid #bababa; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-size: 13px;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        transition: background .15s, border-color .15s;
+    }
+    #sf-root .sf-btn-default:hover { background: #f5f5f5; border-color: #888; }
+
+    /* ── Sort bar ── */
+    #sf-root .sf-sort-bar {
+        display: flex; align-items: center; gap: 4px;
+        font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-sort-btn {
+        height: 26px; padding: 0 8px;
+        border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+        background: transparent; color: #0064d9; font-size: 11px;
+        font-family: inherit;
+        transition: background .15s;
+    }
+    #sf-root .sf-sort-btn:hover { background: #eef4ff; border-color: #c5d9f7; }
+    #sf-root .sf-sort-ind { font-size: 11px; opacity: .5; margin-left: 4px; }
+
+    /* ── Column header ── */
+    #sf-root .sf-col-header {
+        display: flex; gap: 8px; padding: 4px 10px;
+        font-size: 11px; font-weight: 600; color: #6a6d70;
+        border-bottom: 2px solid #e0e0e0;
+        user-select: none;
+    }
+
+    /* ── List container ── */
+    #sf-root .sf-list {
+        max-height: 360px; overflow-y: auto;
+        border: 1px solid #e0e0e0; border-radius: 6px;
+        background: #fff;
+    }
+
+    /* ── Group accordion header ── */
+    #sf-root .sf-group-header {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 10px;
+        background: #f0ecf5;
+        border-bottom: 1px solid #e0e0e0;
+        cursor: pointer;
+        user-select: none;
+        position: sticky; top: 0; z-index: 2;
+    }
+    #sf-root .sf-group-header:hover { background: #e8e0f0; }
+    #sf-root .sf-group-header.sf-drag-over { outline: 2px dashed #38164a; background: #e0d4f0; }
+    #sf-root .sf-group-arrow {
+        display: inline-block; transition: transform .15s;
+        font-size: 12px; color: #38164a; flex-shrink: 0;
+        width: 14px;
+    }
+    #sf-root .sf-group-arrow.sf-collapsed { transform: rotate(-90deg); }
+    #sf-root .sf-group-name-wrap {
+        display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+    }
+    #sf-root .sf-group-name {
+        font-size: 12px; font-weight: 600; color: #38164a;
+    }
+    #sf-root .sf-group-count {
+        font-size: 10px; color: #888; font-weight: 400;
+    }
+    #sf-root .sf-group-name-input {
+        height: 24px; padding: 0 6px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 3px;
+        font-family: inherit; outline: none; width: 140px;
+        display: none;
+    }
+    #sf-root .sf-group-name-input:focus { border-color: #0064d9; }
+    #sf-root .sf-group-actions {
+        display: flex; gap: 4px; flex-shrink: 0; margin-left: auto;
+    }
+    #sf-root .sf-group-btn {
+        height: 22px; padding: 0 6px; font-size: 11px;
+        border: 1px solid #c0c0c0; border-radius: 3px; cursor: pointer;
+        background: #fff; color: #32363a; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-group-btn:hover { background: #f0f0f0; }
+    #sf-root .sf-group-btn.sf-group-btn-del { border-color: #bb0000; color: #bb0000; }
+    #sf-root .sf-group-btn.sf-group-btn-del:hover { background: #fff0f0; }
+    #sf-root .sf-group-drag-handle {
+        cursor: grab; color: #bbb; font-size: 14px; flex-shrink: 0;
+        padding: 0 2px;
+    }
+    #sf-root .sf-group-drag-handle:active { cursor: grabbing; }
+
+    /* ── Command row ── */
+    #sf-root .sf-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 10px 7px 26px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 13px;
+        transition: background .1s;
+    }
+    #sf-root .sf-row:last-child { border-bottom: none; }
+    #sf-root .sf-row:hover { background: #f5f0f9; }
+    #sf-root .sf-row.sf-drag-over { outline: 2px dashed #0064d9; }
+    #sf-root .sf-row.sf-dragging  { opacity: .4; }
+
+    #sf-root .sf-row-cb { flex: 0 0 18px; }
+    #sf-root .sf-row-cb input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; }
+    #sf-root .sf-row-drag {
+        flex: 0 0 12px; cursor: grab; color: #ccc; font-size: 14px;
+        line-height: 1; flex-shrink: 0;
+    }
+    #sf-root .sf-row-drag:active { cursor: grabbing; }
+
+    #sf-root .sf-row-key {
+        flex: 0 0 100px; min-width: 0; overflow-wrap: anywhere;
+        font-weight: 600; color: #32363a;
+    }
+    #sf-root .sf-row-label  { flex: 2; min-width: 0; overflow-wrap: anywhere; color: #32363a; }
+    #sf-root .sf-row-shortcut {
+        flex: 0 0 110px; min-width: 0; overflow-wrap: anywhere;
+        color: #6a6d70; font-size: 12px;
+    }
+    #sf-root .sf-row-path {
+        flex: 3; min-width: 0; overflow-wrap: anywhere;
+        color: #6a6d70; font-size: 12px; opacity: .85;
+    }
+    #sf-root .sf-row-actions {
+        flex: 0 0 80px; display: flex; gap: 4px;
+        justify-content: flex-end; flex-shrink: 0;
+    }
+    #sf-root .sf-badge {
+        display: inline-block;
+        margin-left: 6px; font-size: 10px; color: #5a6e87;
+        background: #e8f2ff; padding: 1px 6px; border-radius: 10px;
+        font-weight: 400; vertical-align: middle;
+    }
+    #sf-root .sf-kbd {
+        display: inline-block;
+        background: #f7f7f7; padding: 1px 6px; border-radius: 4px;
+        border: 1px solid #e0e0e0; font-size: 11px; color: #555;
+        font-family: monospace;
+    }
+    #sf-root .sf-btn-edit {
+        height: 26px; padding: 0 7px;
+        border: 1px solid #0064d9; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #0064d9; font-size: 13px; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-edit:hover { background: #eef4ff; }
+    #sf-root .sf-btn-del {
+        height: 26px; padding: 0 7px;
+        border: 1px solid #bb0000; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #bb0000; font-size: 13px; font-family: inherit;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-del:hover { background: #fff0f0; }
+    #sf-root .sf-lock { opacity: .4; font-size: 15px; }
+
+    /* ── Toggle switch ── */
+    #sf-root .sf-toggle {
+        position: relative; display: inline-flex; align-items: center;
+        width: 44px; height: 24px; border-radius: 12px; border: none;
+        cursor: pointer; padding: 0; transition: background .2s; flex-shrink: 0;
+    }
+    #sf-root .sf-toggle .sf-toggle-knob {
+        position: absolute;
+        width: 20px; height: 20px; border-radius: 50%; background: #fff;
+        transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    #sf-root .sf-toggle.sf-on  { background: #1a7f4b; }
+    #sf-root .sf-toggle.sf-off { background: #888; }
+    #sf-root .sf-toggle.sf-on  .sf-toggle-knob { left: 22px; }
+    #sf-root .sf-toggle.sf-off .sf-toggle-knob { left: 2px; }
+
+    /* ── Group management panel ── */
+    #sf-root .sf-group-mgmt {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding: 6px 0; border-bottom: 1px solid #e8e0f0;
+        font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-group-mgmt-label { font-weight: 600; color: #38164a; }
+    #sf-root .sf-new-group-input {
+        height: 28px; padding: 0 8px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px;
+        font-family: inherit; outline: none; width: 130px;
+    }
+    #sf-root .sf-new-group-input:focus { border-color: #0064d9; }
+    #sf-root .sf-btn-xs {
+        height: 28px; padding: 0 10px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #32363a; font-family: inherit;
+        display: inline-flex; align-items: center; gap: 4px;
+        transition: background .12s;
+    }
+    #sf-root .sf-btn-xs:hover { background: #f0f0f0; }
+    #sf-root .sf-btn-xs.sf-btn-xs-primary { background: #0064d9; color: #fff; border-color: #0064d9; }
+    #sf-root .sf-btn-xs.sf-btn-xs-primary:hover { background: #0058c0; }
+
+    /* bulk-move bar */
+    #sf-root .sf-bulk-bar {
+        display: none; align-items: center; gap: 8px;
+        padding: 6px 10px; background: #eef4ff;
+        border: 1px solid #c5d9f7; border-radius: 4px;
+        font-size: 12px; color: #32363a;
+    }
+    #sf-root .sf-bulk-bar.sf-visible { display: flex; }
+    #sf-root .sf-bulk-select {
+        height: 28px; padding: 0 6px; font-size: 12px;
+        border: 1px solid #bababa; border-radius: 4px;
+        font-family: inherit; outline: none;
+    }
+
+    /* ── Feature cards ── */
+    #sf-root .sf-feat-notice {
+        display: flex; align-items: center; gap: 8px;
+        background: #f7f7f7; border: 1px solid #e8e8e8; border-radius: 6px;
+        padding: 9px 12px; font-size: 12px; color: #6a6d70;
+    }
+    #sf-root .sf-feat-grid { display: flex; flex-direction: column; gap: 10px; }
+    #sf-root .sf-feat-card {
+        background: #fafafa; border: 1px solid #e8e0f0; border-radius: 8px;
+        padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+        transition: border-color .15s;
+    }
+    #sf-root .sf-feat-card:hover { border-color: #c8b8dc; }
+    #sf-root .sf-feat-card.sf-feat-on { border-color: #b8dcb8; background: #f7fbf7; }
+    #sf-root .sf-feat-icon {
+        width: 40px; height: 40px; border-radius: 8px; background: #f0ecf5;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; flex-shrink: 0;
+    }
+    #sf-root .sf-feat-body { flex: 1; min-width: 0; }
+    #sf-root .sf-feat-name { font-size: 14px; font-weight: 600; color: #32363a; }
+    #sf-root .sf-feat-sc { font-size: 11px; font-weight: 400; color: #888; margin-left: 8px; }
+    #sf-root .sf-feat-desc { font-size: 12px; color: #6a6d70; margin-top: 3px; }
+    #sf-root .sf-feat-status {
+        display: flex; align-items: center; gap: 5px;
+        margin-top: 5px; font-size: 11px; color: #888;
+    }
+    #sf-root .sf-feat-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; flex-shrink: 0; }
+    #sf-root .sf-feat-dot.sf-on { background: #1a7f4b; }
+
+    /* ── Dialog footer ── */
+    #sf-root .sf-dlg-footer {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px;
+        border-top: 1px solid #e0e0e0;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-import-label {
+        display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+        padding: 0 12px; height: 34px;
+        border: 1px solid #bababa; border-radius: 4px;
+        color: #32363a; font-size: 13px; font-family: inherit;
+        background: #fff; transition: background .15s;
+    }
+    #sf-root .sf-import-label:hover { background: #f5f5f5; }
+    #sf-root .sf-import-label span { font-size: 11px; color: #6a6d70; }
+    #sf-root .sf-btn-danger {
+        height: 34px; padding: 0 14px;
+        border: 1px solid #bb0000; border-radius: 4px; cursor: pointer;
+        background: #fff; color: #bb0000; font-size: 13px; font-weight: 600;
+        font-family: inherit;
+        display: inline-flex; align-items: center; gap: 5px;
+        margin-left: auto;
+        transition: background .15s;
+    }
+    #sf-root .sf-btn-danger:hover { background: #fff0f0; }
+
+    /* ── Environment banner (Module 1) ── */
+    #sf-root .sf-env-banner {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 16px; font-size: 12px; font-weight: 600; color: #fff;
+        flex-shrink: 0;
+    }
+    #sf-root .sf-env-banner .sf-env-warn { font-weight: 400; opacity: .9; }
+    #sf-root .sf-env-banner .sf-env-btn {
+        margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 4px;
+        border: 1px solid rgba(255,255,255,.5); background: rgba(255,255,255,.15);
+        color: #fff; cursor: pointer; font-family: inherit;
+    }
+    #sf-root .sf-env-banner .sf-env-btn:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Quick Launcher 2.0 section headers already inline-styled ── */
+
+    .sf-toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #354a5e; color: #fff;
+        padding: 11px 22px; border-radius: 8px;
+        font-family: 72, Arial, sans-serif; font-size: 14px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.3);
+        z-index: 10000000; white-space: nowrap;
+        transition: opacity .4s; opacity: 1;
+        display: flex; align-items: center; gap: 10px;
+        pointer-events: none;
+    }
+
+    /* ── Quick Launcher ── */
+    #sfQuickLauncher-root { font-family: 72, Arial, sans-serif; }
+    #sfQuickLauncher-toggle {
+        display: flex; align-items: center; gap: 6px;
+        padding: 7px 14px;
+        background: #38164a; color: #fff;
+        border: none; border-radius: 6px; cursor: pointer;
+        font-family: 72, Arial, sans-serif; font-size: 13px; font-weight: 500;
+        box-shadow: 0 2px 6px rgba(0,0,0,.25);
+        transition: background .15s;
+    }
+    #sfQuickLauncher-toggle:hover { background: #4e2268; }
+    #sfQuickLauncher-menu {
+        position: absolute; top: 40px; left: 0; min-width: 264px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,.18);
+        display: none; max-height: 420px; overflow-y: auto;
+    }
+    #sfQuickLauncher-menu .sf-ql-group-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 12px;
+        background: #f0ecf5;
+        cursor: pointer; border-bottom: 1px solid #e0e0e0;
+        font-size: 12px; font-weight: 600; color: #38164a;
+        user-select: none; position: sticky; top: 0; z-index: 1;
+    }
+    #sfQuickLauncher-menu .sf-ql-item {
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        padding: 8px 12px 8px 26px; cursor: pointer; font-size: 13px;
+        border-bottom: 1px solid #f5f5f5; color: #32363a;
+        background: #fff;
+        transition: background .12s ease;
+        user-select: none;
+    }
+    /* Children never swallow the click — except the favorite star, which has its own handler. */
+    #sfQuickLauncher-menu .sf-ql-item > *:not(.sf-ql-star) { pointer-events: none; }
+    #sfQuickLauncher-menu .sf-ql-item .sf-ql-star { pointer-events: auto; }
+    #sfQuickLauncher-menu .sf-ql-item .sf-ql-star:hover { color: #c98a00; }
+    #sfQuickLauncher-menu .sf-ql-item:hover { background: #f5f0f9; }
+    #sfQuickLauncher-menu .sf-ql-item .sf-ql-label {
+        flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #sfQuickLauncher-menu .sf-ql-item .sf-ql-arrow { flex: 0 0 auto; opacity: .35; }
+    #sfQuickLauncher-menu .sf-ql-manage {
+        position: sticky; bottom: 0; padding: 8px 12px; cursor: pointer;
+        border-top: 2px solid #e0e0e0; font-weight: 600;
+        background: #fafafa; font-size: 13px; z-index: 1;
+        color: #0064d9; display: flex; align-items: center; gap: 6px;
+        transition: background .12s ease;
+        user-select: none;
+    }
+    #sfQuickLauncher-menu .sf-ql-manage > * { pointer-events: none; }
+    #sfQuickLauncher-menu .sf-ql-manage:hover { background: #eee; }

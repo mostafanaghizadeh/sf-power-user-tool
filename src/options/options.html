@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SF Power User Tool — Options</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <div class="opt-wrap">
+      <header class="opt-header">
+        <h1>SF Power User Tool — Settings</h1>
+        <p>Manage your commands, groups, and preferences. Changes sync to every open SuccessFactors tab.</p>
+      </header>
+
+      <section class="opt-card">
+        <h2>Sync &amp; Privacy</h2>
+        <label class="opt-row">
+          <input type="checkbox" data-setting="syncEnabled" />
+          <span>Sync my command list across signed-in browsers (uses <code>chrome.storage.sync</code>). All data stays inside your browser profile — nothing is sent to any third-party server.</span>
+        </label>
+      </section>
+
+      <section class="opt-card">
+        <h2>Commands &amp; Groups</h2>
+        <div id="sf-options-mount"></div>
+      </section>
+
+      <section class="opt-card">
+        <h2>Backup</h2>
+        <button class="opt-btn" data-action="exportAll">Export all data (JSON)</button>
+        <label class="opt-btn opt-file">
+          Import data (JSON)
+          <input type="file" data-action="importAll" accept=".json" hidden />
+        </label>
+        <button class="opt-btn opt-danger" data-action="resetAll">Reset everything</button>
+      </section>
+
+      <footer class="opt-footer">
+        <span data-role="version"></span>
+        <a data-role="privacy" href="#" target="_blank" rel="noopener">Privacy policy</a>
+      </footer>
+    </div>
+    <script type="module" src="./options.js"></script>
+  </body>
+</html>
